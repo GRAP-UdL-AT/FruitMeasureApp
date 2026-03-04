@@ -1,0 +1,117 @@
+name: fruit_measure_app
+description: "FruitMeasureApp"
+publish_to: "none"
+
+version: 1.0.2+3
+
+environment:
+  sdk: ^3.7.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.20.2
+  ultralytics_yolo:
+    git:
+      url: https://github.com/sadtearcat/YOLO_FLUTTER_APP.git
+      ref: fix/useGpuOption
+  cupertino_icons: ^1.0.8
+  hive_ce: ^2.11.3
+  hive_ce_flutter: ^2.3.1
+  uuid: ^4.5.1
+  dartx: ^1.2.0
+  file_picker: ^10.2.0
+  flutter_speed_dial: ^7.0.0
+  google_maps_flutter: ^2.12.3
+  geolocator: ^14.0.2
+  image_picker: ^1.1.2
+  path_provider: ^2.1.5
+  exif: ^3.3.0
+  table_calendar: ^3.2.0
+  fl_chart: ^1.0.0
+  image: ^4.5.4
+  gal: ^2.3.2
+  photo_manager: ^3.5.0
+  photo_view: ^0.15.0
+  share_plus: ^11.0.0
+  geoxml: ^2.6.2
+  url_launcher: ^6.3.1
+  flutter_launcher_icons: ^0.14.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  hive_ce_generator: ^1.9.3
+  build_runner: ^2.6.0
+
+flutter_launcher_icons:
+  android: true
+  image_path_android: assets/icon/fma_icon_imagotip_color1024.png
+  adaptive_icon_foreground: assets/icon/fma_icon_foreground_color_512.png
+  adaptive_icon_background: "#FFFFFF"
+  ios: true
+  image_path_ios: assets/icon/fma_icon_imagotip_color1024.png
+  image_path_ios_dark_transparent: assets/icon/fma_icon_imagotip_b&w1024.png
+  image_path_ios_tinted_grayscale: assets/icon/fma_icon_imagotip_b&w1024.png
+  remove_alpha_ios: true
+
+flutter:
+  generate: true
+  uses-material-design: true
+  assets:
+    - assets/imagotip/FruitMeasureApp__imagotip_b&w.png
+    - assets/imagotip/FruitMeasureApp__imagotip_blanc.png
+    - assets/imagotip/FruitMeasureApp__imagotip_color.png
+    - assets/imagotip/FruitMeasureApp__imagotip_una tinta_blanc.png
+    - assets/imagotip/FruitMeasureApp__imagotip_una tinta_negre.png
+    - assets/primary_logotype/FruitMeasureApp__logotip_primari_b&w.png
+    - assets/primary_logotype/FruitMeasureApp__logotip_primari_blanc.png
+    - assets/primary_logotype/FruitMeasureApp__logotip_primari_color.png
+    - assets/primary_logotype/FruitMeasureApp__logotip_primari_una tinta_blanc.png
+    - assets/primary_logotype/FruitMeasureApp__logotip_primari_una tinta_negre.png
+    - assets/secondary_logotype/FruitMeasureApp__logotip_secundari_b&w.png
+    - assets/secondary_logotype/FruitMeasureApp__logotip_secundari_blanc.png
+    - assets/secondary_logotype/FruitMeasureApp__logotip_secundari_color.png
+    - assets/secondary_logotype/FruitMeasureApp__logotip_secundari_una tinta_blanc.png
+    - assets/secondary_logotype/FruitMeasureApp__logotip_secundari_una tinta_negre.png
+    - assets/secondary_logotype/FruitMeasureApp__logotip_secundari_trimmed_una tinta_negre.png
+    - assets/icon/fma_icon_imagotip_color1024.png
+    - assets/icon/fma_icon_imagotip_blanc1024.png
+    - assets/icon/fma_icon_imagotip_b&w1024.png
+    - assets/icon/fma_icon_foreground_color_512.png
+    - assets/icon/fma_icon_foreground_monocolor_512.png
+    - assets/logos/logos-creditos.png
+    - assets/logos/lleida-logo.png
+    - assets/logos/logos_IRTA.png
+    - assets/logos/generalitat-departament-logo.png
+    - assets/logos/gobEspaña-logo.png
+    - assets/logos/UE-logo.png
+
+  # An image asset can refer to one or more resolution-specific "variants", see
+  # https://flutter.dev/to/resolution-aware-images
+
+  # For details regarding adding assets from package dependencies, see
+  # https://flutter.dev/to/asset-from-package
+
+  # To add custom fonts to your application, add a fonts section here,
+  # in this "flutter" section. Each entry in this list should have a
+  # "family" key with the font family name, and a "fonts" key with a
+  # list giving the asset and other descriptors for the font. For
+  # example:
+  # fonts:
+  #   - family: Schyler
+  #     fonts:
+  #       - asset: fonts/Schyler-Regular.ttf
+  #       - asset: fonts/Schyler-Italic.ttf
+  #         style: italic
+  #   - family: Trajan Pro
+  #     fonts:
+  #       - asset: fonts/TrajanPro.ttf
+  #       - asset: fonts/TrajanPro_Bold.ttf
+  #         weight: 700
+  #
+  # For details regarding fonts from package dependencies,
+  # see https://flutter.dev/to/font-from-package
