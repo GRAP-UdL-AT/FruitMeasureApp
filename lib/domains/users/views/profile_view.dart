@@ -357,9 +357,11 @@ class _ProfileViewState extends State<ProfileView>
                             const SizedBox(height: 8),
                             Slider(
                               value: _confidenceThreshold,
-                              min: 0.50,
+                              //min: 0.50,
+                              min: 0.0,
                               max: 0.95,
-                              divisions: 9,
+                              //divisions: 9,
+                              divisions: 19,
                               label: '${(_confidenceThreshold * 100).toInt()}%',
                               onChanged:
                                   isEditing
@@ -375,7 +377,8 @@ class _ProfileViewState extends State<ProfileView>
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  '50%',
+                                  //'50%',
+                                  '0%',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.grey[600],

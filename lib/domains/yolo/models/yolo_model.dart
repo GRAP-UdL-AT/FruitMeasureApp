@@ -12,7 +12,8 @@ class YoloModel {
     switch (model) {
       case Model.fruto:
       case Model.corimbo:
-        return 'fma_model_corimbo';
+        // return 'fma_model_corimbo';
+        return 'yolo11n_fruit_fp32_1120';
       case Model.caixa:
         return 'fma_model_caixa';
     }
