@@ -63,6 +63,7 @@ String _photoFilename(photo, {String fallback = ''}) {
   return fallback;
 }
 
+
 String _basenameWithoutExtension(String filename) {
   if (filename.isEmpty) return '';
   final dotIndex = filename.lastIndexOf('.');
@@ -175,6 +176,10 @@ String _completeMeasurementsToCsvString({
       'Calibre corregit (mm)',
       'Confiança',
       'Classe',
+      'BBox x1',
+      'BBox y1',
+      'BBox x2',
+      'BBox y2',
     ]),
   );
 
@@ -192,6 +197,10 @@ String _completeMeasurementsToCsvString({
           measurementName,
           modelName,
           measurementCreationDate,
+          '',
+          '',
+          '',
+          '',
           '',
           '',
           '',
@@ -247,6 +256,10 @@ String _completeMeasurementsToCsvString({
             '',
             '',
             '',
+            '',
+            '',
+            '',
+            '',
           ]),
         );
         continue;
@@ -276,6 +289,10 @@ String _completeMeasurementsToCsvString({
             _formatNullableDouble(detection.correctedCaliberMm),
             detection.confidence.toStringAsFixed(2),
             detection.cls,
+            detection.x1.toStringAsFixed(2),
+            detection.y1.toStringAsFixed(2),
+            detection.x2.toStringAsFixed(2),
+            detection.y2.toStringAsFixed(2),
           ]),
         );
       }

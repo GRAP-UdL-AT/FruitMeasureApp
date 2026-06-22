@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:dartx/dartx.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:fruit_measure_app/domains/detections/models/detection.dart';
 import 'package:fruit_measure_app/domains/measurements/models/measurement.dart';
 import 'package:fruit_measure_app/domains/measurements/models/model_enum.dart';
@@ -16,7 +17,6 @@ import 'package:fruit_measure_app/utils/get_current_location.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
-import 'package:file_picker/file_picker.dart';
 
 class _ProcessedImage {
   _ProcessedImage({
