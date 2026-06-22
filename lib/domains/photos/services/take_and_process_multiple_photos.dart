@@ -16,54 +16,76 @@ import 'package:fruit_measure_app/utils/get_current_location.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
+import 'package:file_picker/file_picker.dart';
 
-Future<List<(img.Image, Uint8List, XFile)>?> _imageProcessingForMultipleImages(
-  ImageSource takingType,
-) async {
+class _ProcessedImage {
+  _ProcessedImage({
+    required this.image,
+    required this.png,
+  });
+
+  final img.Image image;
+  final Uint8List png;
+}
+
+Future<List<(XFile, String?)>?> _pickMultipleImages(
+    ImageSource takingType,
+    ) async {
+  if (takingType == ImageSource.gallery) {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      allowMultiple: true,
+      withData: false,
+    );
+
+    if (result == null || result.files.isEmpty) return null;
+
+    return result.files.map((file) {
+      print('ORIGINAL FILE NAME: ${file.name}');
+      return (file.xFile, file.name);
+    }).toList();
+  }
+
   final picker = ImagePicker();
 
-  if (takingType == ImageSource.gallery) {
-    final picked = await picker.pickMultiImage(
-      maxWidth: 1120,
-      maxHeight: 1120,
-      imageQuality: 100,
-    );
+  final picked = await picker.pickImage(
+    source: ImageSource.camera,
+    maxWidth: 1120,
+    maxHeight: 1120,
+    imageQuality: 100,
+  );
 
-    if (picked.isEmpty) return null; // User cancelled
+  if (picked == null) return null;
 
-    final List<(img.Image, Uint8List, XFile)> processedImages = [];
+  return [(picked, picked.name)];
+}
 
-    for (final file in picked) {
-      final bytes = await file.readAsBytes();
-      final decoded = img.decodeImage(bytes);
-      if (decoded != null) {
-        final (normalized, _) = normalizeImageOrientation(decoded);
-        processedImages.add((normalized, img.encodePng(normalized), file));
-      }
-    }
+Future<_ProcessedImage> _processSingleImageForModel(
+    XFile file,
+    ) async {
+  final bytes = await file.readAsBytes();
+  final decoded = img.decodeImage(bytes);
 
-    if (processedImages.isEmpty) {
-      throw Exception('¡ERROR! Invalid image data');
-    }
-
-    return processedImages;
-  } else {
-    final picked = await picker.pickImage(
-      source: takingType,
-      maxWidth: 1120,
-      maxHeight: 1120,
-      imageQuality: 100,
-    );
-    if (picked == null) return null; // User cancelled
-
-    final bytes = await picked.readAsBytes();
-    final decoded = img.decodeImage(bytes);
-    if (decoded == null) throw Exception('¡ERROR! Invalid image data');
-
-    final (normalized, _) = normalizeImageOrientation(decoded);
-
-    return [(normalized, img.encodePng(normalized), picked)];
+  if (decoded == null) {
+    throw Exception('¡ERROR! Invalid image data');
   }
+
+  final (normalized, _) = normalizeImageOrientation(decoded);
+
+  img.Image imageForModel = normalized;
+
+  if (normalized.width > 1120 || normalized.height > 1120) {
+    if (normalized.width >= normalized.height) {
+      imageForModel = img.copyResize(normalized, width: 1120);
+    } else {
+      imageForModel = img.copyResize(normalized, height: 1120);
+    }
+  }
+
+  return _ProcessedImage(
+    image: imageForModel,
+    png: Uint8List.fromList(img.encodePng(imageForModel)),
+  );
 }
 
 const _kLabelHeight = 28;
@@ -203,7 +225,8 @@ takeAndProcessMultiplePhotos({
   required Function(int, int) onProgress,
 }) async {
   final loc = await getCurrentLocation();
-  final images = await _imageProcessingForMultipleImages(takingType);
+  //final images = await _imageProcessingForMultipleImages(takingType);
+  final images = await _pickMultipleImages(takingType);
 
   if (images == null) {
     // User cancelled
@@ -219,8 +242,18 @@ takeAndProcessMultiplePhotos({
   for (int i = 0; i < images.length; i++) {
     onProgress(i + 1, images.length);
 
-    final (image, png, pickedFile) = images[i];
+    //final (image, png, pickedFile) = images[i];
+    //final (image, png, pickedFile, originalFilename) = images[i];
+    //final photoId = const Uuid().v4();
+
+    final (pickedFile, originalFilename) = images[i];
+
+    final processed = await _processSingleImageForModel(pickedFile);
+    final image = processed.image;
+    final png = processed.png;
+
     final photoId = const Uuid().v4();
+
     final captureDate = await extractPhotoCaptureDateTime(pickedFile);
     final creationDate = DateTime.now();
     final placedLabelRects = <math.Rectangle<int>>[];
@@ -313,6 +346,7 @@ takeAndProcessMultiplePhotos({
           );
         }
 
+        print('SOURCE ID SAVED: $originalFilename');
         final complete = PhotoComplete(
           id: photoId,
           measurementId: measurement.id,
@@ -321,6 +355,7 @@ takeAndProcessMultiplePhotos({
           latitude: loc?.latitude,
           longitude: loc?.longitude,
           imagePath: null,
+          sourceId: originalFilename,
           detections: sortedFruits,
         );
 
@@ -477,6 +512,7 @@ takeAndProcessMultiplePhotos({
       }
     }
 
+    print('SOURCE ID SAVED: $originalFilename');
     final complete = PhotoComplete(
       id: photoId,
       measurementId: measurement.id,
@@ -485,6 +521,7 @@ takeAndProcessMultiplePhotos({
       latitude: loc?.latitude,
       longitude: loc?.longitude,
       imagePath: null,
+      sourceId: originalFilename,
       detections: detections,
     );
 

@@ -42,6 +42,7 @@ Future<List<PhotoComplete>> getPhotoComplete({
         imagePath: p.imagePath,
         galleryPath: galleryPathToUse,
         originalImagePath: p.originalImagePath,
+        sourceId: p.sourceId,
         detections:
             Hive.box<Detection>(
               detectionsBoxName,

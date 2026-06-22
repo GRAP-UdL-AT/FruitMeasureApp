@@ -97,7 +97,7 @@ types:
         index: 15
   Detection:
     typeId: 4
-    nextIndex: 11
+    nextIndex: 15
     fields:
       id:
         index: 0
@@ -117,3 +117,11 @@ types:
         index: 7
       caliber:
         index: 8
+      fruitDiameterPx:
+        index: 11
+      supportDiameterPx:
+        index: 12
+      rawCaliberMm:
+        index: 13
+      correctedCaliberMm:
+        index: 14

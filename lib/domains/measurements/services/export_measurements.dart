@@ -38,14 +38,66 @@ String _completeMeasurementsToJsonString({
   return const JsonEncoder.withIndent('  ').convert(measurementsJson);
 }
 
-String _completeMeasurementsToCsvString({
+String _basename(String? path) {
+  if (path == null || path.isEmpty) return '';
+  return path.split(RegExp(r'[/\\]')).last;
+}
+
+String _photoFilename(photo, {String fallback = ''}) {
+  if (photo.sourceId != null && photo.sourceId!.isNotEmpty) {
+    return photo.sourceId!;
+  }
+
+  if (photo.galleryPath != null && photo.galleryPath!.isNotEmpty) {
+    return _basename(photo.galleryPath);
+  }
+
+  if (photo.originalImagePath != null && photo.originalImagePath!.isNotEmpty) {
+    return _basename(photo.originalImagePath);
+  }
+
+  if (photo.imagePath != null && photo.imagePath!.isNotEmpty) {
+    return _basename(photo.imagePath);
+  }
+
+  return fallback;
+}
+
+String _basenameWithoutExtension(String filename) {
+  if (filename.isEmpty) return '';
+  final dotIndex = filename.lastIndexOf('.');
+  if (dotIndex <= 0) return filename;
+  return filename.substring(0, dotIndex);
+}
+
+// Afegit MF: Guardar valors suport i poma en px
+String _formatNullableDouble(double? value, {int decimals = 1}) {
+  if (value == null) return '';
+  return value.toStringAsFixed(decimals);
+}
+
+String _csvCell(Object? value) {
+  final text = value?.toString() ?? '';
+  final escaped = text.replaceAll('"', '""');
+  return '"$escaped"';
+}
+
+String _csvRow(List<Object?> values) {
+  return values.map(_csvCell).join(',');
+}
+// Final - Afegit MF: Guardar valors suport i poma en px
+
+/*String _completeMeasurementsToCsvString({
   required List<MeasurementComplete> completeMeasurements,
   AppLocalizations? loc,
 }) {
   final StringBuffer csv = StringBuffer();
 
-  csv.writeln(
+  *//*csv.writeln(
     loc?.exportMeasurementsCsvHeader ?? 'Measurement ID,Measurement Name,Model,Measurement Creation Date,Photo ID,Photo Filename,Photo Creation Date,Photo Capture Date,Latitude,Longitude,Detection ID,Caliber (mm),Confidence,Class',
+  );*//*
+  csv.writeln(
+    'ID de Mesura,Nom de Mesura,Model,Data de Creació de Mesura,ID de Foto,Nom de Foto,Data de Creació de Foto,Data de Captura de Foto,Latitud,Longitud,ID de Detecció,Calibre (mm),Confiança,Classe',
   );
 
   for (final measurement in completeMeasurements) {
@@ -72,7 +124,8 @@ String _completeMeasurementsToCsvString({
       final latitude = photo.latitude?.toStringAsFixed(6) ?? '';
       final longitude = photo.longitude?.toStringAsFixed(6) ?? '';
 
-      final photoFilename = photo.imagePath?.split('/').last ?? '';
+      //final photoFilename = photo.imagePath?.split('/').last ?? '';
+      final photoFilename = _photoFilename(photo);
 
       if (photo.detections.isEmpty) {
         csv.writeln(
@@ -83,10 +136,147 @@ String _completeMeasurementsToCsvString({
 
       for (int detIdx = 0; detIdx < photo.detections.length; detIdx++) {
         final detection = photo.detections[detIdx];
-        final photoBasename = photoFilename.split('.').first;
+        //final photoBasename = photoFilename.split('.').first;
+        final photoBasename = _basenameWithoutExtension(photoFilename);
         final humanReadableId = '${photoBasename}_fruto${detIdx + 1}';
         csv.writeln(
           '${measurement.id},"$measurementName","$modelName",$measurementCreationDate,${photo.id},"$photoFilename",$photoCreationDate,$photoCaptureDate,$latitude,$longitude,$humanReadableId,${detection.caliber.toStringAsFixed(1)},${detection.confidence.toStringAsFixed(2)},${detection.cls}',
+        );
+      }
+    }
+  }
+
+  return csv.toString();
+}*/
+
+String _completeMeasurementsToCsvString({
+  required List<MeasurementComplete> completeMeasurements,
+  AppLocalizations? loc,
+}) {
+  final StringBuffer csv = StringBuffer();
+
+  csv.writeln(
+    _csvRow([
+      'ID de Mesura',
+      'Nom de Mesura',
+      'Model',
+      'Data de Creació de Mesura',
+      'ID de Foto',
+      'Nom de Foto',
+      'Data de Creació de Foto',
+      'Data de Captura de Foto',
+      'Latitud',
+      'Longitud',
+      'ID de Detecció',
+      'Calibre (mm)',
+      'Diàmetre fruit (px)',
+      'Diàmetre suport (px)',
+      'Calibre sense correcció (mm)',
+      'Calibre corregit (mm)',
+      'Confiança',
+      'Classe',
+    ]),
+  );
+
+  for (final measurement in completeMeasurements) {
+    final measurementName = measurement.name ?? '';
+    final modelName = measurement.model?.getModelName(loc) ?? '';
+    final measurementCreationDate = DateFormat(
+      'dd/MM/yyyy HH:mm',
+    ).format(measurement.creationDate);
+
+    if (measurement.photos.isEmpty) {
+      csv.writeln(
+        _csvRow([
+          measurement.id,
+          measurementName,
+          modelName,
+          measurementCreationDate,
+          '',
+          '',
+          '',
+          '',
+          '',
+          '',
+          '',
+          '',
+          '',
+          '',
+          '',
+          '',
+          '',
+          '',
+        ]),
+      );
+      continue;
+    }
+
+    for (final photo in measurement.photos) {
+      final photoCreationDate = DateFormat(
+        'dd/MM/yyyy HH:mm',
+      ).format(photo.creationDate);
+
+      final photoCaptureDate = DateFormat(
+        'dd/MM/yyyy HH:mm',
+      ).format(photo.captureDate);
+
+      final latitude = photo.latitude?.toStringAsFixed(6) ?? '';
+      final longitude = photo.longitude?.toStringAsFixed(6) ?? '';
+
+      final photoFilename = _photoFilename(photo);
+      final photoBasename = _basenameWithoutExtension(photoFilename);
+
+      if (photo.detections.isEmpty) {
+        csv.writeln(
+          _csvRow([
+            measurement.id,
+            measurementName,
+            modelName,
+            measurementCreationDate,
+            photo.id,
+            photoFilename,
+            photoCreationDate,
+            photoCaptureDate,
+            latitude,
+            longitude,
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+          ]),
+        );
+        continue;
+      }
+
+      for (int detIdx = 0; detIdx < photo.detections.length; detIdx++) {
+        final detection = photo.detections[detIdx];
+        final humanReadableId = '${photoBasename}_fruto${detIdx + 1}';
+
+        csv.writeln(
+          _csvRow([
+            measurement.id,
+            measurementName,
+            modelName,
+            measurementCreationDate,
+            photo.id,
+            photoFilename,
+            photoCreationDate,
+            photoCaptureDate,
+            latitude,
+            longitude,
+            humanReadableId,
+            detection.caliber.toStringAsFixed(1),
+            _formatNullableDouble(detection.fruitDiameterPx),
+            _formatNullableDouble(detection.supportDiameterPx),
+            _formatNullableDouble(detection.rawCaliberMm),
+            _formatNullableDouble(detection.correctedCaliberMm),
+            detection.confidence.toStringAsFixed(2),
+            detection.cls,
+          ]),
         );
       }
     }
@@ -146,7 +336,8 @@ String _completeMeasurementsToTxtString({
 
     for (int i = 0; i < measurement.photos.length; i++) {
       final photo = measurement.photos[i];
-      final photoFilename = photo.imagePath?.split('/').last ?? notAvailableLabel;
+      //final photoFilename = photo.imagePath?.split('/').last ?? notAvailableLabel;
+      final photoFilename = _photoFilename(photo, fallback: notAvailableLabel);
       txt.writeln('$photoLabel ${i + 1}:');
       txt.writeln('    ID: ${photo.id}');
       txt.writeln('    Filename: $photoFilename');
@@ -161,7 +352,8 @@ String _completeMeasurementsToTxtString({
       );
       txt.writeln('$detectionsLabel ${photo.detections.length}');
 
-      final photoBasename = photoFilename.split('.').first;
+      //final photoBasename = photoFilename.split('.').first;
+      final photoBasename = _basenameWithoutExtension(photoFilename);
 
       for (int j = 0; j < photo.detections.length; j++) {
         final detection = photo.detections[j];
@@ -206,10 +398,10 @@ Future<String?> exportMeasurements(
 
   switch (format) {
     case ExportFormat.csv:
-      content = _completeMeasurementsToCsvString(
+      content = '\uFEFF${_completeMeasurementsToCsvString(
         completeMeasurements: completeMeasurements,
         loc: loc,
-      );
+      )}';
       fileName =
           'fma_measurements_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.csv';
       allowedExtensions = ['.csv'];

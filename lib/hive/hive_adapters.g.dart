@@ -265,13 +265,17 @@ class DetectionAdapter extends TypeAdapter<Detection> {
       x2: (fields[6] as num).toDouble(),
       y2: (fields[7] as num).toDouble(),
       caliber: (fields[8] as num).toDouble(),
+      fruitDiameterPx: (fields[11] as num?)?.toDouble(),
+      supportDiameterPx: (fields[12] as num?)?.toDouble(),
+      rawCaliberMm: (fields[13] as num?)?.toDouble(),
+      correctedCaliberMm: (fields[14] as num?)?.toDouble(),
     );
   }
 
   @override
   void write(BinaryWriter writer, Detection obj) {
     writer
-      ..writeByte(9)
+      ..writeByte(13)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -289,7 +293,15 @@ class DetectionAdapter extends TypeAdapter<Detection> {
       ..writeByte(7)
       ..write(obj.y2)
       ..writeByte(8)
-      ..write(obj.caliber);
+      ..write(obj.caliber)
+      ..writeByte(11)
+      ..write(obj.fruitDiameterPx)
+      ..writeByte(12)
+      ..write(obj.supportDiameterPx)
+      ..writeByte(13)
+      ..write(obj.rawCaliberMm)
+      ..writeByte(14)
+      ..write(obj.correctedCaliberMm);
   }
 
   @override
