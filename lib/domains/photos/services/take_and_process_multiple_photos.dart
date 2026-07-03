@@ -14,6 +14,7 @@ import 'package:fruit_measure_app/domains/photos/services/normalize_image_orient
 import 'package:fruit_measure_app/domains/users/values/constants.dart';
 import 'package:fruit_measure_app/domains/yolo/models/yolo_model.dart';
 import 'package:fruit_measure_app/utils/get_current_location.dart';
+import 'package:heic_to_png_jpg/heic_to_png_jpg.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
@@ -63,8 +64,26 @@ Future<List<(XFile, String?)>?> _pickMultipleImages(
 Future<_ProcessedImage> _processSingleImageForModel(
     XFile file,
     ) async {
-  final bytes = await file.readAsBytes();
-  final decoded = img.decodeImage(bytes);
+  final originalBytes = await file.readAsBytes();
+
+  Uint8List bytesForDecoding;
+
+  if (HeicConverter.isHeic(originalBytes)) {
+    print('HEIC/HEIF DETECTED: ${file.name}');
+
+    bytesForDecoding = await HeicConverter.convertToJPG(
+      heicData: originalBytes,
+      quality: 100,
+      maxWidth: 1120,
+      maxHeight: 1120,
+    );
+
+    print('HEIC/HEIF CONVERTED TO JPG: ${file.name}');
+  } else {
+    bytesForDecoding = originalBytes;
+  }
+
+  final decoded = img.decodeImage(bytesForDecoding);
 
   if (decoded == null) {
     throw Exception('¡ERROR! Invalid image data');
