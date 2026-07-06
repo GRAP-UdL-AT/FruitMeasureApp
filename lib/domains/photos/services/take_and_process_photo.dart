@@ -452,7 +452,10 @@ Future<(PhotoComplete, XFile, XFile, List<Detection>)?> takeAndProcessPhoto({
         detections: sortedFruits,
       );
 
-      final processedFile = await convertModifiedImageToXFile(image);
+      final processedFile = await convertModifiedImageToXFile(
+        image,
+        originalFilename: originalFilename,
+      );
       return (complete, pickedFile, processedFile, sortedFruits);
     } on CaixaProcessingException catch (e) {
       throw Exception(e.message);
@@ -573,6 +576,9 @@ Future<(PhotoComplete, XFile, XFile, List<Detection>)?> takeAndProcessPhoto({
     detections: detections,
   );
 
-  final processedFile = await convertModifiedImageToXFile(image);
+  final processedFile = await convertModifiedImageToXFile(
+    image,
+    originalFilename: originalFilename,
+  );
   return (complete, pickedFile, processedFile, detections);
 }

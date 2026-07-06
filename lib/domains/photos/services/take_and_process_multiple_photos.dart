@@ -378,7 +378,10 @@ takeAndProcessMultiplePhotos({
           detections: sortedFruits,
         );
 
-        final processedFile = await convertModifiedImageToXFile(image);
+        final processedFile = await convertModifiedImageToXFile(
+          image,
+          originalFilename: originalFilename,
+        );
         results.add((complete, pickedFile, processedFile, sortedFruits));
         continue;
       } on CaixaProcessingException {
@@ -544,7 +547,10 @@ takeAndProcessMultiplePhotos({
       detections: detections,
     );
 
-    final processedFile = await convertModifiedImageToXFile(image);
+    final processedFile = await convertModifiedImageToXFile(
+      image,
+      originalFilename: originalFilename,
+    );
     results.add((complete, pickedFile, processedFile, detections));
   }
 
