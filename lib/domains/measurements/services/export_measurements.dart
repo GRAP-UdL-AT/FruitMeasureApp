@@ -43,17 +43,23 @@ String _basename(String? path) {
   return path.split(RegExp(r'[/\\]')).last;
 }
 
-String _photoFilename(photo, {String fallback = ''}) {
+
+String _originalPhotoFilename(photo, {String fallback = ''}) {
   if (photo.sourceId != null && photo.sourceId!.isNotEmpty) {
-    return photo.sourceId!;
+    return _basename(photo.sourceId);
   }
 
+  if (photo.originalImagePath != null &&
+      photo.originalImagePath!.isNotEmpty) {
+    return _basename(photo.originalImagePath);
+  }
+
+  return fallback;
+}
+
+String _processedPhotoFilename(photo, {String fallback = ''}) {
   if (photo.galleryPath != null && photo.galleryPath!.isNotEmpty) {
     return _basename(photo.galleryPath);
-  }
-
-  if (photo.originalImagePath != null && photo.originalImagePath!.isNotEmpty) {
-    return _basename(photo.originalImagePath);
   }
 
   if (photo.imagePath != null && photo.imagePath!.isNotEmpty) {
@@ -163,7 +169,8 @@ String _completeMeasurementsToCsvString({
       'Model',
       'Data de Creació de Mesura',
       'ID de Foto',
-      'Nom de Foto',
+      'Nom Original Foto',
+      'Nom Imatge Processada',
       'Data de Creació de Foto',
       'Data de Captura de Foto',
       'Latitud',
@@ -215,6 +222,7 @@ String _completeMeasurementsToCsvString({
           '',
           '',
           '',
+          '',
         ]),
       );
       continue;
@@ -232,8 +240,12 @@ String _completeMeasurementsToCsvString({
       final latitude = photo.latitude?.toStringAsFixed(6) ?? '';
       final longitude = photo.longitude?.toStringAsFixed(6) ?? '';
 
-      final photoFilename = _photoFilename(photo);
-      final photoBasename = _basenameWithoutExtension(photoFilename);
+      final originalPhotoFilename = _originalPhotoFilename(photo);
+      final processedPhotoFilename = _processedPhotoFilename(photo);
+
+      final photoBasename = _basenameWithoutExtension(
+        originalPhotoFilename,
+      );
 
       if (photo.detections.isEmpty) {
         csv.writeln(
@@ -243,7 +255,8 @@ String _completeMeasurementsToCsvString({
             modelName,
             measurementCreationDate,
             photo.id,
-            photoFilename,
+            originalPhotoFilename,
+            processedPhotoFilename,
             photoCreationDate,
             photoCaptureDate,
             latitude,
@@ -276,7 +289,8 @@ String _completeMeasurementsToCsvString({
             modelName,
             measurementCreationDate,
             photo.id,
-            photoFilename,
+            originalPhotoFilename,
+            processedPhotoFilename,
             photoCreationDate,
             photoCaptureDate,
             latitude,
@@ -354,10 +368,19 @@ String _completeMeasurementsToTxtString({
     for (int i = 0; i < measurement.photos.length; i++) {
       final photo = measurement.photos[i];
       //final photoFilename = photo.imagePath?.split('/').last ?? notAvailableLabel;
-      final photoFilename = _photoFilename(photo, fallback: notAvailableLabel);
+      final originalPhotoFilename = _originalPhotoFilename(
+        photo,
+        fallback: notAvailableLabel,
+      );
+
+      final processedPhotoFilename = _processedPhotoFilename(
+        photo,
+        fallback: notAvailableLabel,
+      );
       txt.writeln('$photoLabel ${i + 1}:');
       txt.writeln('    ID: ${photo.id}');
-      txt.writeln('    Filename: $photoFilename');
+      txt.writeln('    Original filename: $originalPhotoFilename');
+      txt.writeln('    Processed filename: $processedPhotoFilename');
       txt.writeln(
         '$creationDateLabel ${DateFormat('dd/MM/yyyy HH:mm').format(photo.creationDate)}',
       );
@@ -370,7 +393,9 @@ String _completeMeasurementsToTxtString({
       txt.writeln('$detectionsLabel ${photo.detections.length}');
 
       //final photoBasename = photoFilename.split('.').first;
-      final photoBasename = _basenameWithoutExtension(photoFilename);
+      final photoBasename = _basenameWithoutExtension(
+        originalPhotoFilename,
+      );
 
       for (int j = 0; j < photo.detections.length; j++) {
         final detection = photo.detections[j];
