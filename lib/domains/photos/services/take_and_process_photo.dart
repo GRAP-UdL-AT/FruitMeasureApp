@@ -17,8 +17,9 @@ import 'package:fruit_measure_app/utils/get_current_location.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
+import 'package:file_picker/file_picker.dart';
 
-Future<(img.Image, Uint8List, XFile)?> _imageProcessingForModel(
+/*Future<(img.Image, Uint8List, XFile)?> _imageProcessingForModel(
   ImageSource takingType,
 ) async {
   final picker = ImagePicker();
@@ -37,6 +38,50 @@ Future<(img.Image, Uint8List, XFile)?> _imageProcessingForModel(
   final (normalized, _) = normalizeImageOrientation(decoded);
 
   return (normalized, img.encodePng(normalized), picked);
+}*/
+
+Future<(img.Image, Uint8List, XFile, String?)?> _imageProcessingForModel(
+    ImageSource takingType,
+    ) async {
+  XFile? picked;
+  String? originalFilename;
+
+  if (takingType == ImageSource.camera) {
+    final picker = ImagePicker();
+
+    picked = await picker.pickImage(
+      source: ImageSource.camera,
+      maxWidth: 1120,
+      maxHeight: 1120,
+      imageQuality: 100,
+    );
+
+    originalFilename = picked?.name;
+  } else {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      allowMultiple: false,
+      withData: false,
+    );
+
+    if (result == null || result.files.isEmpty) return null;
+
+    final file = result.files.single;
+
+    originalFilename = file.name;
+    picked = file.xFile;
+  }
+
+  if (picked == null) return null;
+
+  final bytes = await picked.readAsBytes();
+  final decoded = img.decodeImage(bytes);
+
+  if (decoded == null) throw Exception('¡ERROR! Invalid image data');
+
+  final (normalized, _) = normalizeImageOrientation(decoded);
+
+  return (normalized, img.encodePng(normalized), picked, originalFilename);
 }
 
 const _kLabelHeight = 28;
@@ -321,7 +366,8 @@ Future<(PhotoComplete, XFile, XFile, List<Detection>)?> takeAndProcessPhoto({
   final result = await _imageProcessingForModel(takingType);
   if (result == null) return null; // User cancelled
 
-  final (image, png, pickedFile) = result;
+  //final (image, png, pickedFile) = result;
+  final (image, png, pickedFile, originalFilename) = result;
   final captureDate = await extractPhotoCaptureDateTime(pickedFile);
   final creationDate = DateTime.now();
   final placedLabelRects = <math.Rectangle<int>>[];
@@ -402,10 +448,14 @@ Future<(PhotoComplete, XFile, XFile, List<Detection>)?> takeAndProcessPhoto({
         latitude: loc?.latitude,
         longitude: loc?.longitude,
         imagePath: null,
+        sourceId: originalFilename,
         detections: sortedFruits,
       );
 
-      final processedFile = await convertModifiedImageToXFile(image);
+      final processedFile = await convertModifiedImageToXFile(
+        image,
+        originalFilename: originalFilename,
+      );
       return (complete, pickedFile, processedFile, sortedFruits);
     } on CaixaProcessingException catch (e) {
       throw Exception(e.message);
@@ -522,9 +572,13 @@ Future<(PhotoComplete, XFile, XFile, List<Detection>)?> takeAndProcessPhoto({
     latitude: loc?.latitude,
     longitude: loc?.longitude,
     imagePath: null,
+    sourceId: originalFilename,
     detections: detections,
   );
 
-  final processedFile = await convertModifiedImageToXFile(image);
+  final processedFile = await convertModifiedImageToXFile(
+    image,
+    originalFilename: originalFilename,
+  );
   return (complete, pickedFile, processedFile, detections);
 }

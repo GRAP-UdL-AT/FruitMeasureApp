@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:dartx/dartx.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:fruit_measure_app/domains/detections/models/detection.dart';
 import 'package:fruit_measure_app/domains/measurements/models/measurement.dart';
 import 'package:fruit_measure_app/domains/measurements/models/model_enum.dart';
@@ -13,57 +14,97 @@ import 'package:fruit_measure_app/domains/photos/services/normalize_image_orient
 import 'package:fruit_measure_app/domains/users/values/constants.dart';
 import 'package:fruit_measure_app/domains/yolo/models/yolo_model.dart';
 import 'package:fruit_measure_app/utils/get_current_location.dart';
+import 'package:heic_to_png_jpg/heic_to_png_jpg.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 
-Future<List<(img.Image, Uint8List, XFile)>?> _imageProcessingForMultipleImages(
-  ImageSource takingType,
-) async {
+class _ProcessedImage {
+  _ProcessedImage({
+    required this.image,
+    required this.png,
+  });
+
+  final img.Image image;
+  final Uint8List png;
+}
+
+Future<List<(XFile, String?)>?> _pickMultipleImages(
+    ImageSource takingType,
+    ) async {
+  if (takingType == ImageSource.gallery) {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      allowMultiple: true,
+      withData: false,
+    );
+
+    if (result == null || result.files.isEmpty) return null;
+
+    return result.files.map((file) {
+      print('ORIGINAL FILE NAME: ${file.name}');
+      return (file.xFile, file.name);
+    }).toList();
+  }
+
   final picker = ImagePicker();
 
-  if (takingType == ImageSource.gallery) {
-    final picked = await picker.pickMultiImage(
+  final picked = await picker.pickImage(
+    source: ImageSource.camera,
+    maxWidth: 1120,
+    maxHeight: 1120,
+    imageQuality: 100,
+  );
+
+  if (picked == null) return null;
+
+  return [(picked, picked.name)];
+}
+
+Future<_ProcessedImage> _processSingleImageForModel(
+    XFile file,
+    ) async {
+  final originalBytes = await file.readAsBytes();
+
+  Uint8List bytesForDecoding;
+
+  if (HeicConverter.isHeic(originalBytes)) {
+    print('HEIC/HEIF DETECTED: ${file.name}');
+
+    bytesForDecoding = await HeicConverter.convertToJPG(
+      heicData: originalBytes,
+      quality: 100,
       maxWidth: 1120,
       maxHeight: 1120,
-      imageQuality: 100,
     );
 
-    if (picked.isEmpty) return null; // User cancelled
-
-    final List<(img.Image, Uint8List, XFile)> processedImages = [];
-
-    for (final file in picked) {
-      final bytes = await file.readAsBytes();
-      final decoded = img.decodeImage(bytes);
-      if (decoded != null) {
-        final (normalized, _) = normalizeImageOrientation(decoded);
-        processedImages.add((normalized, img.encodePng(normalized), file));
-      }
-    }
-
-    if (processedImages.isEmpty) {
-      throw Exception('¡ERROR! Invalid image data');
-    }
-
-    return processedImages;
+    print('HEIC/HEIF CONVERTED TO JPG: ${file.name}');
   } else {
-    final picked = await picker.pickImage(
-      source: takingType,
-      maxWidth: 1120,
-      maxHeight: 1120,
-      imageQuality: 100,
-    );
-    if (picked == null) return null; // User cancelled
-
-    final bytes = await picked.readAsBytes();
-    final decoded = img.decodeImage(bytes);
-    if (decoded == null) throw Exception('¡ERROR! Invalid image data');
-
-    final (normalized, _) = normalizeImageOrientation(decoded);
-
-    return [(normalized, img.encodePng(normalized), picked)];
+    bytesForDecoding = originalBytes;
   }
+
+  final decoded = img.decodeImage(bytesForDecoding);
+
+  if (decoded == null) {
+    throw Exception('¡ERROR! Invalid image data');
+  }
+
+  final (normalized, _) = normalizeImageOrientation(decoded);
+
+  img.Image imageForModel = normalized;
+
+  if (normalized.width > 1120 || normalized.height > 1120) {
+    if (normalized.width >= normalized.height) {
+      imageForModel = img.copyResize(normalized, width: 1120);
+    } else {
+      imageForModel = img.copyResize(normalized, height: 1120);
+    }
+  }
+
+  return _ProcessedImage(
+    image: imageForModel,
+    png: Uint8List.fromList(img.encodePng(imageForModel)),
+  );
 }
 
 const _kLabelHeight = 28;
@@ -203,7 +244,8 @@ takeAndProcessMultiplePhotos({
   required Function(int, int) onProgress,
 }) async {
   final loc = await getCurrentLocation();
-  final images = await _imageProcessingForMultipleImages(takingType);
+  //final images = await _imageProcessingForMultipleImages(takingType);
+  final images = await _pickMultipleImages(takingType);
 
   if (images == null) {
     // User cancelled
@@ -219,20 +261,43 @@ takeAndProcessMultiplePhotos({
   for (int i = 0; i < images.length; i++) {
     onProgress(i + 1, images.length);
 
-    final (image, png, pickedFile) = images[i];
+    //final (image, png, pickedFile) = images[i];
+    //final (image, png, pickedFile, originalFilename) = images[i];
+    //final photoId = const Uuid().v4();
+
+    final (pickedFile, originalFilename) = images[i];
+
+    final processed = await _processSingleImageForModel(pickedFile);
+    final image = processed.image;
+    final png = processed.png;
+
     final photoId = const Uuid().v4();
+
     final captureDate = await extractPhotoCaptureDateTime(pickedFile);
     final creationDate = DateTime.now();
     final placedLabelRects = <math.Rectangle<int>>[];
 
     List<dynamic> res;
     try {
+      print('IMAGE WIDTH: ${image.width}');
+      print('IMAGE HEIGHT: ${image.height}');
+      print('PNG LENGTH: ${png.length}');
       res = await YoloModel.predict(png);
     } catch (e) {
       // Skip this image if YOLO prediction fails, continue with next
       continue;
     }
     final boxes = res;
+
+    print('--- YOLO BOXES ---');
+    for (final e in boxes) {
+      print(
+          'cls=${e['className']} '
+              'conf=${e['confidence']} '
+              'x1=${e['x1']} y1=${e['y1']} '
+              'x2=${e['x2']} y2=${e['y2']}'
+      );
+    }
 
     if (boxes.isEmpty) continue;
 
@@ -300,6 +365,7 @@ takeAndProcessMultiplePhotos({
           );
         }
 
+        print('SOURCE ID SAVED: $originalFilename');
         final complete = PhotoComplete(
           id: photoId,
           measurementId: measurement.id,
@@ -308,10 +374,14 @@ takeAndProcessMultiplePhotos({
           latitude: loc?.latitude,
           longitude: loc?.longitude,
           imagePath: null,
+          sourceId: originalFilename,
           detections: sortedFruits,
         );
 
-        final processedFile = await convertModifiedImageToXFile(image);
+        final processedFile = await convertModifiedImageToXFile(
+          image,
+          originalFilename: originalFilename,
+        );
         results.add((complete, pickedFile, processedFile, sortedFruits));
         continue;
       } on CaixaProcessingException {
@@ -340,9 +410,38 @@ takeAndProcessMultiplePhotos({
       d.cls != 'peu_de_rei' ? (detections.add(d)) : (support ??= d);
     }
 
+    print('Filtered detections >= $threshold: support=${support != null}, fruits=${detections.length}');
+
+    if (support == null) {
+      print('SKIP image $i: no support above threshold');
+      continue;
+    }
+
+    if (detections.isEmpty) {
+      print('SKIP image $i: no apples above threshold');
+      continue;
+    }
+
     if (support == null) continue;
 
     if (detections.isEmpty) continue;
+
+    print('--- SUPPORT ---');
+    print(
+        'support: x1=${support.x1}, y1=${support.y1}, '
+            'x2=${support.x2}, y2=${support.y2}, '
+            'w=${support.x2 - support.x1}, h=${support.y2 - support.y1}'
+    );
+
+    print('--- FRUITS ---');
+    for (final d in detections) {
+      print(
+          'fruit: x1=${d.x1}, y1=${d.y1}, '
+              'x2=${d.x2}, y2=${d.y2}, '
+              'w=${d.x2 - d.x1}, h=${d.y2 - d.y1}, '
+              'caliber=${d.caliber}'
+      );
+    }
 
     final cX = image.width / 2;
     final cY = image.height / 2;
@@ -435,6 +534,7 @@ takeAndProcessMultiplePhotos({
       }
     }
 
+    print('SOURCE ID SAVED: $originalFilename');
     final complete = PhotoComplete(
       id: photoId,
       measurementId: measurement.id,
@@ -443,10 +543,14 @@ takeAndProcessMultiplePhotos({
       latitude: loc?.latitude,
       longitude: loc?.longitude,
       imagePath: null,
+      sourceId: originalFilename,
       detections: detections,
     );
 
-    final processedFile = await convertModifiedImageToXFile(image);
+    final processedFile = await convertModifiedImageToXFile(
+      image,
+      originalFilename: originalFilename,
+    );
     results.add((complete, pickedFile, processedFile, detections));
   }
 

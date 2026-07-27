@@ -27,6 +27,50 @@ Measurement _getMeasurementById({required String measurementId}) {
   return m;
 }
 
+String _basename(String path) {
+  return path.split(RegExp(r'[/\\]')).last;
+}
+
+String _safeFilename(String filename) {
+  return filename
+      .replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')
+      .replaceAll(RegExp(r'\s+'), '_');
+}
+
+String _basenameWithoutExtension(String filename) {
+  final dotIndex = filename.lastIndexOf('.');
+  if (dotIndex <= 0) return filename;
+  return filename.substring(0, dotIndex);
+}
+
+String _extensionFromFilename(String filename, {String fallback = 'jpg'}) {
+  final dotIndex = filename.lastIndexOf('.');
+  if (dotIndex <= 0 || dotIndex == filename.length - 1) return fallback;
+  return filename.substring(dotIndex + 1).toLowerCase();
+}
+
+String _processedFilenameFromPhoto({
+  required Photo photo,
+  required XFile processedImage,
+}) {
+  final sourceFilename = photo.sourceId;
+
+  if (sourceFilename != null && sourceFilename.isNotEmpty) {
+    final safeSource = _safeFilename(_basename(sourceFilename));
+    final sourceBasename = _basenameWithoutExtension(safeSource);
+
+    // La imatge processada es genera amb encodePng, per tant l'extensió correcta és .png
+    return '${sourceBasename}_processed.png';
+  }
+
+  final processedName = processedImage.name;
+  if (processedName.isNotEmpty) {
+    return _safeFilename(_basename(processedName));
+  }
+
+  return _safeFilename(_basename(processedImage.path));
+}
+
 Future<void> _saveImage({
   required Photo photo,
   required XFile originalImage,
@@ -36,16 +80,31 @@ Future<void> _saveImage({
     final String duplicateFilePath =
         (await getApplicationDocumentsDirectory()).path;
 
-    final originalFileName = originalImage.path.split('/').last;
-    final fileExtension = originalFileName.split('.').last;
+    final originalFileName = photo.sourceId != null && photo.sourceId!.isNotEmpty
+        ? _safeFilename(_basename(photo.sourceId!))
+        : _safeFilename(_basename(originalImage.path));
+
+    final originalFileExtension = _extensionFromFilename(originalFileName);
 
     final originalSavedPath =
-        '$duplicateFilePath/original_${photo.id}.$fileExtension';
+        '$duplicateFilePath/original_${photo.id}.$originalFileExtension';
+
     await originalImage.saveTo(originalSavedPath);
     photo.originalImagePath = originalSavedPath;
 
-    final processedSavedPath =
-        '$duplicateFilePath/processed_${photo.id}.$fileExtension';
+    final processedFileName = _processedFilenameFromPhoto(
+      photo: photo,
+      processedImage: processedImage,
+    );
+
+    final processedSavedPath = '$duplicateFilePath/$processedFileName';
+
+    print('SAVE ORIGINAL SOURCE ID: ${photo.sourceId}');
+    print('SAVE ORIGINAL FILE NAME: $originalFileName');
+    print('SAVE PROCESSED XFILE NAME: ${processedImage.name}');
+    print('SAVE PROCESSED FINAL NAME: $processedFileName');
+    print('SAVE PROCESSED FINAL PATH: $processedSavedPath');
+
     await processedImage.saveTo(processedSavedPath);
     photo.imagePath = processedSavedPath;
 
@@ -62,7 +121,7 @@ Future<void> _saveImage({
     } else {
       try {
         await Gal.putImage(processedSavedPath);
-        photo.galleryPath = 'processed_${photo.id}.$fileExtension';
+        photo.galleryPath = processedFileName;
       } catch (e) {
         photo.galleryPath = null;
       }
@@ -147,6 +206,7 @@ Future<PhotoView?> executePhotoTakingWorkflow({
           imagePath: photo.imagePath,
           originalImagePath: photo.originalImagePath,
           galleryPath: photo.galleryPath,
+          sourceId: photo.sourceId,
           detections: detections,
         );
 
@@ -208,6 +268,7 @@ Future<PhotoView?> executePhotoTakingWorkflow({
         imagePath: newPhoto.imagePath,
         originalImagePath: newPhoto.originalImagePath,
         galleryPath: newPhoto.galleryPath,
+        sourceId: newPhoto.sourceId,
         detections: detections,
       );
 
