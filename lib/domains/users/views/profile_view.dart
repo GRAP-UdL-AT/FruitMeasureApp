@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:fruit_measure_app/components/account_end_drawer.dart';
 import 'package:fruit_measure_app/components/colors.dart';
 import 'package:fruit_measure_app/components/custom_app_bar.dart';
-import 'package:fruit_measure_app/components/account_end_drawer.dart';
 import 'package:fruit_measure_app/components/custom_snackbar/custom_snackbar.dart';
 import 'package:fruit_measure_app/domains/users/components/language_selector.dart';
 import 'package:fruit_measure_app/domains/users/models/user.dart';
@@ -29,7 +29,6 @@ class _ProfileViewState extends State<ProfileView>
 
   late bool _deletePhotosAfterMeasure;
   late final TextEditingController _userNameController;
-  late final TextEditingController _emailController;
   late TextEditingController _supportDistanceController;
   late double _confidenceThreshold;
 
@@ -85,7 +84,6 @@ class _ProfileViewState extends State<ProfileView>
                 onPressed: () {
                   isEditing = false;
                   widget.user.userName = _userNameController.value.text;
-                  widget.user.email = _emailController.value.text;
                   widget.user.deletePhotosAfterMeasure =
                       _deletePhotosAfterMeasure;
                   widget.user.supportDistance =
@@ -115,7 +113,6 @@ class _ProfileViewState extends State<ProfileView>
 
     _deletePhotosAfterMeasure = widget.user.deletePhotosAfterMeasure;
     _userNameController = TextEditingController(text: widget.user.userName);
-    _emailController = TextEditingController(text: widget.user.email);
     _supportDistanceController = TextEditingController(
       text: widget.user.supportDistance.toString(),
     );
@@ -125,7 +122,6 @@ class _ProfileViewState extends State<ProfileView>
   @override
   void dispose() {
     _userNameController.dispose();
-    _emailController.dispose();
     _supportDistanceController.dispose();
     super.dispose();
   }
@@ -166,13 +162,6 @@ class _ProfileViewState extends State<ProfileView>
                               ),
                             ),
                             const SizedBox(height: 4),
-                            Text(
-                              user.email,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey,
-                              ),
-                            ),
                           ],
                         ),
                         CircleAvatar(
@@ -212,7 +201,7 @@ class _ProfileViewState extends State<ProfileView>
                     TextField(
                       controller: _userNameController,
                       enabled: isEditing,
-                      keyboardType: TextInputType.emailAddress,
+                      keyboardType: TextInputType.text,
                       autocorrect: false,
                       enableSuggestions: false,
                       textCapitalization: TextCapitalization.none,
@@ -227,40 +216,6 @@ class _ProfileViewState extends State<ProfileView>
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Row(
-                        children: [
-                          const Icon(Icons.email_rounded, size: 20),
-                          const SizedBox(width: 8),
-                          Text(
-                            loc.emailLabel,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      enabled: isEditing,
-                      keyboardType: TextInputType.emailAddress,
-                      autocorrect: false,
-                      enableSuggestions: false,
-                      textCapitalization: TextCapitalization.none,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.deny(
-                          RegExp(r'[ÁÉÍÓÚÑáéíóúñ]'),
-                        ),
-                      ],
-                      decoration: InputDecoration(
-                        helperText: loc.emailRecommended,
-                        helperMaxLines: 3,
-                      ),
-                      controller: _emailController,
-                    ),
                     const SizedBox(height: 12),
                     Align(
                       alignment: Alignment.centerLeft,
@@ -357,9 +312,9 @@ class _ProfileViewState extends State<ProfileView>
                             const SizedBox(height: 8),
                             Slider(
                               value: _confidenceThreshold,
-                              min: 0.50,
+                              min: 0.0,
                               max: 0.95,
-                              divisions: 9,
+                              divisions: 19,
                               label: '${(_confidenceThreshold * 100).toInt()}%',
                               onChanged:
                                   isEditing
@@ -375,7 +330,7 @@ class _ProfileViewState extends State<ProfileView>
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  '50%',
+                                  '0%',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.grey[600],

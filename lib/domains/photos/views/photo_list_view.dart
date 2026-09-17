@@ -104,9 +104,7 @@ class _PhotoListViewState extends State<PhotoListView>
     }
 
     return FutureBuilder<List<PhotoComplete>>(
-      key: ValueKey<int>(
-        _cacheVersion,
-      ), 
+      key: ValueKey<int>(_cacheVersion),
       future: _cachedPhotosFuture,
       builder: (context, snapshot) {
         if (snapshot.hasError) {
@@ -344,7 +342,7 @@ class _PhotoListViewState extends State<PhotoListView>
                         Expanded(
                           flex: 3,
                           child: DropdownButtonFormField<Model>(
-                            value: widget.measurement.model,
+                            initialValue: widget.measurement.model,
                             onChanged: (Model? value) {
                               if (value != null) {
                                 setState(() {
@@ -372,11 +370,12 @@ class _PhotoListViewState extends State<PhotoListView>
                                 Model.values
                                     .where((model) => model != Model.caixa)
                                     .map((model) {
-                                  return DropdownMenuItem<Model>(
-                                    value: model,
-                                    child: Text(model.getModelName(loc)),
-                                  );
-                                }).toList(),
+                                      return DropdownMenuItem<Model>(
+                                        value: model,
+                                        child: Text(model.getModelName(loc)),
+                                      );
+                                    })
+                                    .toList(),
                             decoration: const InputDecoration(
                               contentPadding: EdgeInsets.symmetric(
                                 horizontal: 12,
@@ -413,9 +412,10 @@ class _PhotoListViewState extends State<PhotoListView>
                                       vertical: 4,
                                     ),
                                     selected: isSelected,
-                                    selectedTileColor: Theme.of(
-                                      context,
-                                    ).colorScheme.primary.withOpacity(0.1),
+                                    selectedTileColor: Theme.of(context)
+                                        .colorScheme
+                                        .primary
+                                        .withValues(alpha: 0.1),
                                     leading:
                                         _selectionMode
                                             ? Checkbox(
@@ -491,6 +491,8 @@ class _PhotoListViewState extends State<PhotoListView>
                                           takenImage: null,
 
                                           isCreatePhoto: false,
+                                          photos: sortedPhotos,
+                                          photoIndex: index,
                                         );
                                         Navigator.of(context)
                                             .pushNamed(

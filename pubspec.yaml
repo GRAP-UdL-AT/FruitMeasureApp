@@ -2,7 +2,7 @@ name: fruit_measure_app
 description: "FruitMeasureApp"
 publish_to: "none"
 
-version: 1.0.2+3
+version: 1.0.4+6
 
 environment:
   sdk: ^3.7.2
@@ -22,6 +22,7 @@ dependencies:
   hive_ce_flutter: ^2.3.1
   uuid: ^4.5.1
   dartx: ^1.2.0
+  collection: ^1.19.1
   file_picker: ^10.2.0
   flutter_speed_dial: ^7.0.0
   google_maps_flutter: ^2.12.3
@@ -39,6 +40,7 @@ dependencies:
   geoxml: ^2.6.2
   url_launcher: ^6.3.1
   flutter_launcher_icons: ^0.14.4
+  heic_to_png_jpg: ^0.1.0
 
 dev_dependencies:
   flutter_test:
@@ -59,6 +61,9 @@ flutter_launcher_icons:
   remove_alpha_ios: true
 
 flutter:
+  config:
+    # geolocator's foreground-only permission bypass currently requires CocoaPods.
+    enable-swift-package-manager: false
   generate: true
   uses-material-design: true
   assets:

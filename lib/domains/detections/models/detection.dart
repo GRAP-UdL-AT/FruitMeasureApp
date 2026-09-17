@@ -14,6 +14,10 @@ class Detection extends HiveObject {
     required this.x2,
     required this.y2,
     required this.caliber,
+    this.fruitDiameterPx,
+    this.supportDiameterPx,
+    this.rawCaliberMm,
+    this.correctedCaliberMm,
   });
 
   factory Detection.fromJson(Map<String, dynamic> json) {
@@ -27,6 +31,10 @@ class Detection extends HiveObject {
       x2: (json['x2'] as num).toDouble(),
       y2: (json['y2'] as num).toDouble(),
       caliber: (json['caliber'] as num).toDouble(),
+      fruitDiameterPx: (json['fruitDiameterPx'] as num?)?.toDouble(),
+      supportDiameterPx: (json['supportDiameterPx'] as num?)?.toDouble(),
+      rawCaliberMm: (json['rawCaliberMm'] as num?)?.toDouble(),
+      correctedCaliberMm: (json['correctedCaliberMm'] as num?)?.toDouble(),
     );
   }
 
@@ -40,6 +48,10 @@ class Detection extends HiveObject {
   final double y2;
 
   double caliber;
+  double? fruitDiameterPx;
+  double? supportDiameterPx;
+  double? rawCaliberMm;
+  double? correctedCaliberMm;
 
   double get cX => (x1 + x2) / 2;
 
@@ -47,6 +59,18 @@ class Detection extends HiveObject {
 
   double distanceFromImgCenter({required double cX, required double cY}) =>
       sqrt(pow(this.cX - cX, 2) + pow(this.cY - cY, 2));
+
+  void recordScale({
+    required double fruitPx,
+    required double supportPx,
+    required double rawMm,
+    double? correctedMm,
+  }) {
+    fruitDiameterPx = fruitPx;
+    supportDiameterPx = supportPx;
+    rawCaliberMm = rawMm;
+    correctedCaliberMm = correctedMm;
+  }
 
   double diameterInMm({
     required double supportX1,
@@ -57,17 +81,33 @@ class Detection extends HiveObject {
     double? distFruitToCamMm,
   }) {
     final fruitDiameter = ((x2 - x1).abs() + (y2 - y1).abs()) / 2;
-    final supportDiameter = ((supportX2 - supportX1).abs() + (supportY2 - supportY1).abs()) / 2;
-    final double detectionDiameter = (fruitDiameter / supportDiameter) * referenceDiameterMm;
+    final supportDiameter =
+        ((supportX2 - supportX1).abs() + (supportY2 - supportY1).abs()) / 2;
+    final double detectionDiameter =
+        (fruitDiameter / supportDiameter) * referenceDiameterMm;
 
     if (distFruitToCamMm == null) {
+      recordScale(
+        fruitPx: fruitDiameter,
+        supportPx: supportDiameter,
+        rawMm: detectionDiameter,
+      );
       return detectionDiameter.toStringAsFixed(1).toDouble();
     }
 
-    return lensCorrectionFactor(
+    final corrected = lensCorrectionFactor(
       estimatedDiameter: detectionDiameter,
       distFruitToCamMm: distFruitToCamMm,
-    ).toStringAsFixed(1).toDouble();
+    );
+
+    recordScale(
+      fruitPx: fruitDiameter,
+      supportPx: supportDiameter,
+      rawMm: detectionDiameter,
+      correctedMm: corrected,
+    );
+
+    return corrected.toStringAsFixed(1).toDouble();
   }
 
   double lensCorrectionFactor({
@@ -97,5 +137,9 @@ class Detection extends HiveObject {
     'x2': x2,
     'y2': y2,
     'caliber': caliber,
+    'fruitDiameterPx': fruitDiameterPx,
+    'supportDiameterPx': supportDiameterPx,
+    'rawCaliberMm': rawCaliberMm,
+    'correctedCaliberMm': correctedCaliberMm,
   };
 }

@@ -4,14 +4,15 @@ import 'package:collection/collection.dart';
 import 'package:dartx/dartx.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
+import 'package:fruit_measure_app/components/account_end_drawer.dart';
 import 'package:fruit_measure_app/components/colors.dart';
 import 'package:fruit_measure_app/components/custom_app_bar.dart';
-import 'package:fruit_measure_app/components/account_end_drawer.dart';
 import 'package:fruit_measure_app/components/custom_snackbar/custom_snackbar.dart';
 import 'package:fruit_measure_app/components/empty_list_component.dart';
 import 'package:fruit_measure_app/domains/detections/models/detection.dart';
 import 'package:fruit_measure_app/domains/measurements/models/measurement.dart';
 import 'package:fruit_measure_app/domains/measurements/models/measurement_complete.dart';
+import 'package:fruit_measure_app/domains/measurements/services/import_measurement_identity.dart';
 import 'package:fruit_measure_app/domains/measurements/views/measurement_list_view.dart';
 import 'package:fruit_measure_app/domains/measurements/views/measurements_multi_growth_curve_stadistics_view.dart';
 import 'package:fruit_measure_app/domains/photos/models/photo.dart';
@@ -54,6 +55,7 @@ class _PlotListViewState extends State<PlotListView>
   int? _lastPlotsCount;
   String? _lastUserId;
   int? _lastModificationDateSum;
+  bool _isImportingPlots = false;
 
   List<Plot> get _plots {
     if (currentUser == null) {
@@ -362,6 +364,9 @@ class _PlotListViewState extends State<PlotListView>
                                                 originalPhoto.galleryPath,
                                             originalImagePath:
                                                 originalPhoto.originalImagePath,
+                                            sourceId: originalPhoto.sourceId,
+                                            originalFilename:
+                                                originalPhoto.originalFilename,
                                           );
 
                                           await photoBox.put(
@@ -386,6 +391,18 @@ class _PlotListViewState extends State<PlotListView>
                                                   y2: originalDetection.y2,
                                                   caliber:
                                                       originalDetection.caliber,
+                                                  fruitDiameterPx:
+                                                      originalDetection
+                                                          .fruitDiameterPx,
+                                                  supportDiameterPx:
+                                                      originalDetection
+                                                          .supportDiameterPx,
+                                                  rawCaliberMm:
+                                                      originalDetection
+                                                          .rawCaliberMm,
+                                                  correctedCaliberMm:
+                                                      originalDetection
+                                                          .correctedCaliberMm,
                                                 );
 
                                             await detectionsBox.put(
@@ -683,6 +700,14 @@ class _PlotListViewState extends State<PlotListView>
                     label: loc.importPlots,
                     elevation: 2,
                     onTap: () async {
+                      // The file picker and the import itself are asynchronous.
+                      // Ignore a second tap while the first import is still in
+                      // progress; otherwise two concurrent imports can both
+                      // observe an empty local database and create duplicates.
+                      if (_isImportingPlots) return;
+                      _isImportingPlots = true;
+                      updateState();
+
                       try {
                         final ps = await PhotoManager.requestPermissionExtend();
 
@@ -731,20 +756,46 @@ class _PlotListViewState extends State<PlotListView>
                         int newPlotsMeasurementsCount = 0;
                         int existingPlotsCount = 0;
                         int restoredMeasurementsCount = 0;
+                        int duplicateMeasurementsCount = 0;
 
                         final plotBox = Hive.box<Plot>(plotBoxName);
                         final measurementBox = Hive.box<Measurement>(
                           measurementBoxName,
                         );
 
-                        final existingMeasurements =
+                        var existingMeasurements =
                             measurementBox.values.toList();
 
                         _permissionState = ps;
 
+                        final importedPlotKeys = <String>{};
+                        final importedMeasurementKeysByPlot =
+                            <String, Set<String>>{};
+
                         for (final plot in result.plots) {
+                          // A repeated plot in the export must not cause its
+                          // measurements to be imported twice.  The source
+                          // identity is stable across accounts and takes
+                          // precedence over the local UUID.
+                          final plotKey = canonicalSourceId(
+                            plot.id,
+                            plot.sourceId,
+                          );
+                          if (!importedPlotKeys.add(plotKey)) continue;
+
+                          final measurementKeysForPlot =
+                              importedMeasurementKeysByPlot.putIfAbsent(
+                                plotKey,
+                                () => <String>{},
+                              );
+
                           final existingPlot = plots.firstWhereOrNull(
-                            (p) => p.sourceId == plot.id,
+                            (p) =>
+                                p.id == plot.id ||
+                                p.id == plot.sourceId ||
+                                p.sourceId == plot.id ||
+                                (p.sourceId != null &&
+                                    p.sourceId == plot.sourceId),
                           );
 
                           if (existingPlot != null) {
@@ -760,20 +811,42 @@ class _PlotListViewState extends State<PlotListView>
                             await plotBox.put(existingPlot.id, existingPlot);
 
                             for (final measurement in plot.measurements) {
-                              if (_measurementExists(
+                              final measurementKey = canonicalSourceId(
                                 measurement.id,
-                                existingMeasurements,
-                              )) {
-                                await _updateMeasurementAndRestorePhotos(
-                                  measurement,
-                                );
+                                measurement.sourceId,
+                              );
+                              if (!measurementKeysForPlot.add(measurementKey)) {
+                                continue;
+                              }
+
+                              final existingMeasurement =
+                                  _findExistingMeasurement(
+                                    measurement,
+                                    existingMeasurements,
+                                    plotId: existingPlot.id,
+                                  );
+                              if (existingMeasurement != null) {
+                                final restored =
+                                    await _updateMeasurementAndRestorePhotos(
+                                      measurement,
+                                      existingMeasurement: existingMeasurement,
+                                    );
+                                if (restored) {
+                                  restoredMeasurementsCount++;
+                                } else {
+                                  duplicateMeasurementsCount++;
+                                }
                               } else {
                                 await _importMeasurementWithPhotosAndDetections(
                                   measurement,
                                   existingPlot.id,
                                 );
+                                restoredMeasurementsCount++;
                               }
-                              restoredMeasurementsCount++;
+                              // Keep the in-memory snapshot current for the
+                              // rest of this import operation.
+                              existingMeasurements =
+                                  measurementBox.values.toList();
                             }
 
                             existingPlotsCount++;
@@ -791,16 +864,31 @@ class _PlotListViewState extends State<PlotListView>
                               variety: plot.variety,
                               lat: plot.lat,
                               lng: plot.lng,
-                              sourceId: plot.id,
+                              sourceId: canonicalSourceId(
+                                plot.id,
+                                plot.sourceId,
+                              ),
                             );
 
                             await plotBox.put(newPlotId, importedPlot);
 
                             for (final measurement in plot.measurements) {
+                              final measurementKey = canonicalSourceId(
+                                measurement.id,
+                                measurement.sourceId,
+                              );
+                              if (!measurementKeysForPlot.add(measurementKey)) {
+                                continue;
+                              }
+
                               await _importMeasurementWithPhotosAndDetections(
                                 measurement,
                                 newPlotId,
                               );
+                              // Keep the in-memory snapshot current for the
+                              // rest of this import operation.
+                              existingMeasurements =
+                                  measurementBox.values.toList();
                               newPlotsMeasurementsCount++;
                             }
 
@@ -821,11 +909,20 @@ class _PlotListViewState extends State<PlotListView>
                           } else if (existingPlotsCount > 0 &&
                               newPlotsCount == 0) {
                             if (restoredMeasurementsCount > 0) {
-                              message = loc
-                                  .importSummaryOnlyExistingWithRestored(
-                                    existingPlotsCount,
-                                    restoredMeasurementsCount,
-                                  );
+                              if (duplicateMeasurementsCount > 0) {
+                                message = loc
+                                    .importSummaryOnlyExistingWithRestoredAndSkipped(
+                                      existingPlotsCount,
+                                      restoredMeasurementsCount,
+                                      duplicateMeasurementsCount,
+                                    );
+                              } else {
+                                message = loc
+                                    .importSummaryOnlyExistingWithRestored(
+                                      existingPlotsCount,
+                                      restoredMeasurementsCount,
+                                    );
+                              }
                             } else {
                               message = loc.importSummaryOnlyExistingNoChanges(
                                 existingPlotsCount,
@@ -868,6 +965,9 @@ class _PlotListViewState extends State<PlotListView>
                           message: loc.actionNotDone,
                           type: SnackbarType.error,
                         );
+                      } finally {
+                        _isImportingPlots = false;
+                        if (mounted) updateState();
                       }
                     },
                   ),
@@ -918,26 +1018,38 @@ class _PlotListViewState extends State<PlotListView>
     );
   }
 
-  bool _measurementExists(
-    String measurementId,
-    List<Measurement> existingMeasurements,
-  ) {
-    return existingMeasurements.any(
-      (m) => m.sourceId == measurementId || m.id == measurementId,
-    );
+  Measurement? _findExistingMeasurement(
+    MeasurementComplete measurement,
+    List<Measurement> existingMeasurements, {
+    String? plotId,
+  }) {
+    for (final existing in existingMeasurements) {
+      if (plotId != null &&
+          !{
+            plotId,
+            measurement.plotId,
+            measurement.sourcePlotId,
+          }.contains(existing.plotId)) {
+        continue;
+      }
+      if (importedMeasurementMatches(measurement, existing)) return existing;
+    }
+    return null;
   }
 
-  Future<void> _restoreMissingPhotos(
+  Future<bool> _restoreMissingPhotos(
     MeasurementComplete measurement,
     String existingMeasurementId,
   ) async {
     final photoBox = Hive.box<Photo>(photoBoxName);
     final detectionsBox = Hive.box<Detection>(detectionsBoxName);
+    var hasChanges = false;
 
     for (final photoComplete in measurement.photos) {
       Photo? existingPhoto;
       for (final p in photoBox.values) {
-        if (p.sourceId == photoComplete.id || p.id == photoComplete.id) {
+        if (p.measurementId == existingMeasurementId &&
+            importedPhotoMatches(photoComplete, p)) {
           existingPhoto = p;
           break;
         }
@@ -988,9 +1100,11 @@ class _PlotListViewState extends State<PlotListView>
           imagePath: imagePathToUse,
           galleryPath: galleryPathToUse,
           originalImagePath: originalImagePathToUse,
-          sourceId: photoComplete.id,
+          sourceId: canonicalSourceId(photoComplete.id, photoComplete.sourceId),
+          originalFilename: photoComplete.originalFilename,
         );
         await photoBox.put(newPhotoId, photo);
+        hasChanges = true;
 
         for (final detection in photoComplete.detections) {
           final newDetectionId = const Uuid().v4();
@@ -1004,47 +1118,86 @@ class _PlotListViewState extends State<PlotListView>
             x2: detection.x2,
             y2: detection.y2,
             caliber: detection.caliber,
+            fruitDiameterPx: detection.fruitDiameterPx,
+            supportDiameterPx: detection.supportDiameterPx,
+            rawCaliberMm: detection.rawCaliberMm,
+            correctedCaliberMm: detection.correctedCaliberMm,
           );
           await detectionsBox.put(newDetectionId, newDetection);
         }
+      } else {
+      
+        final existingDetections =
+            detectionsBox.values
+                .where((detection) => detection.photoId == existingPhoto!.id)
+                .toList();
+
+        for (final detection in photoComplete.detections) {
+          final alreadyPresent = existingDetections.any(
+            (existingDetection) =>
+                importedDetectionMatches(detection, existingDetection),
+          );
+          if (alreadyPresent) continue;
+
+          final newDetectionId = const Uuid().v4();
+          final newDetection = Detection(
+            id: newDetectionId,
+            photoId: existingPhoto.id,
+            confidence: detection.confidence,
+            cls: detection.cls,
+            x1: detection.x1,
+            y1: detection.y1,
+            x2: detection.x2,
+            y2: detection.y2,
+            caliber: detection.caliber,
+            fruitDiameterPx: detection.fruitDiameterPx,
+            supportDiameterPx: detection.supportDiameterPx,
+            rawCaliberMm: detection.rawCaliberMm,
+            correctedCaliberMm: detection.correctedCaliberMm,
+          );
+          await detectionsBox.put(newDetectionId, newDetection);
+          existingDetections.add(newDetection);
+          hasChanges = true;
+        }
       }
     }
+
+    return hasChanges;
   }
 
   Future<bool> _updateMeasurementAndRestorePhotos(
-    MeasurementComplete measurement,
-  ) async {
+    MeasurementComplete measurement, {
+    Measurement? existingMeasurement,
+  }) async {
     final measurementBox = Hive.box<Measurement>(measurementBoxName);
 
-    Measurement? existingMeasurement;
-    for (final m in measurementBox.values) {
-      if (m.sourceId == measurement.id || m.id == measurement.id) {
-        existingMeasurement = m;
-        break;
-      }
-    }
+    final targetMeasurement =
+        existingMeasurement ??
+        _findExistingMeasurement(measurement, measurementBox.values.toList());
 
-    if (existingMeasurement == null) return false;
+    if (targetMeasurement == null) return false;
 
     bool hasChanges = false;
 
-    if (existingMeasurement.name != measurement.name ||
-        existingMeasurement.model != measurement.model ||
-        existingMeasurement.observations != measurement.observations ||
-        existingMeasurement.modificationDate != measurement.modificationDate) {
+    if (targetMeasurement.name != measurement.name ||
+        targetMeasurement.model != measurement.model ||
+        targetMeasurement.observations != measurement.observations ||
+        targetMeasurement.modificationDate != measurement.modificationDate) {
       hasChanges = true;
 
-      existingMeasurement.name = measurement.name;
-      existingMeasurement.model = measurement.model;
-      existingMeasurement.observations = measurement.observations;
-      existingMeasurement.modificationDate = measurement.modificationDate;
+      targetMeasurement.name = measurement.name;
+      targetMeasurement.model = measurement.model;
+      targetMeasurement.observations = measurement.observations;
+      targetMeasurement.modificationDate = measurement.modificationDate;
 
-      await measurementBox.put(existingMeasurement.id, existingMeasurement);
+      await measurementBox.put(targetMeasurement.id, targetMeasurement);
     }
 
-    await _restoreMissingPhotos(measurement, existingMeasurement.id);
-
-    return hasChanges;
+    final photosRestored = await _restoreMissingPhotos(
+      measurement,
+      targetMeasurement.id,
+    );
+    return photosRestored || hasChanges;
   }
 
   PermissionState? _permissionState;
@@ -1067,7 +1220,7 @@ class _PlotListViewState extends State<PlotListView>
       observations: measurement.observations,
       creationDate: measurement.creationDate,
       modificationDate: measurement.modificationDate,
-      sourceId: measurement.id,
+      sourceId: canonicalSourceId(measurement.id, measurement.sourceId),
     );
 
     await measurementBox.put(newMeasurementId, importedMeasurement);
@@ -1117,7 +1270,8 @@ class _PlotListViewState extends State<PlotListView>
         imagePath: imagePathToUse,
         galleryPath: galleryPathToUse,
         originalImagePath: originalImagePathToUse,
-        sourceId: photoComplete.id,
+        sourceId: canonicalSourceId(photoComplete.id, photoComplete.sourceId),
+        originalFilename: photoComplete.originalFilename,
       );
       await photoBox.put(newPhotoId, photo);
 
@@ -1133,6 +1287,10 @@ class _PlotListViewState extends State<PlotListView>
           x2: detection.x2,
           y2: detection.y2,
           caliber: detection.caliber,
+          fruitDiameterPx: detection.fruitDiameterPx,
+          supportDiameterPx: detection.supportDiameterPx,
+          rawCaliberMm: detection.rawCaliberMm,
+          correctedCaliberMm: detection.correctedCaliberMm,
         );
         await detectionsBox.put(newDetectionId, newDetection);
       }

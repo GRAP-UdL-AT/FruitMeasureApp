@@ -17,9 +17,10 @@ class Measurement extends HiveObject {
   factory Measurement.fromJson(Map<String, dynamic> json) => Measurement(
     id: json['id'],
     plotId: json['plotId'],
-    model: json['model'] != null
-        ? Model.values.firstWhere((e) => e.name == json['model'])
-        : null,
+    model:
+        json['model'] != null
+            ? Model.values.firstWhere((e) => e.name == json['model'])
+            : null,
     name: json['name'],
     observations: json['observations'],
     creationDate: DateTime.parse(json['creationDate']),
