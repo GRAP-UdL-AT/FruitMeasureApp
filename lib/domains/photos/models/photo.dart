@@ -12,6 +12,7 @@ class Photo extends HiveObject {
     this.galleryPath,
     this.originalImagePath,
     this.sourceId,
+    this.originalFilename,
   });
 
   factory Photo.fromJson(Map<String, dynamic> json) {
@@ -30,6 +31,7 @@ class Photo extends HiveObject {
       galleryPath: json['galleryPath'],
       originalImagePath: json['originalImagePath'],
       sourceId: json['sourceId'],
+      originalFilename: json['originalFilename'],
     );
   }
 
@@ -43,6 +45,7 @@ class Photo extends HiveObject {
   String? galleryPath;
   String? originalImagePath;
   String? sourceId;
+  String? originalFilename;
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -55,5 +58,6 @@ class Photo extends HiveObject {
     'galleryPath': galleryPath,
     'originalImagePath': originalImagePath,
     'sourceId': sourceId,
+    'originalFilename': originalFilename,
   };
 }

@@ -181,7 +181,7 @@ abstract class AppLocalizations {
   /// No description provided for @userAlreadyRegistered.
   ///
   /// In es, this message translates to:
-  /// **'Usuario ya registrado con este correo electrónico'**
+  /// **'Este nombre de usuario ya está registrado'**
   String get userAlreadyRegistered;
 
   /// No description provided for @userNotFound.
@@ -279,18 +279,6 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Nombre'**
   String get nameLabel;
-
-  /// No description provided for @emailLabel.
-  ///
-  /// In es, this message translates to:
-  /// **'Correo electrónico'**
-  String get emailLabel;
-
-  /// No description provided for @emailRecommended.
-  ///
-  /// In es, this message translates to:
-  /// **'El correo electrónico no es obligatorio, pero es recomendable para compartir datos'**
-  String get emailRecommended;
 
   /// No description provided for @optionsLabel.
   ///
@@ -739,7 +727,7 @@ abstract class AppLocalizations {
   /// No description provided for @editShot.
   ///
   /// In es, this message translates to:
-  /// **'Editar captura'**
+  /// **'Editar'**
   String get editShot;
 
   /// No description provided for @detectionFruit.
@@ -1468,7 +1456,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In es, this message translates to:
-  /// **'Fruit Measure App'**
+  /// **'FruitMeasureApp'**
   String get appTitle;
 
   /// No description provided for @errorUnknown.
@@ -1480,7 +1468,7 @@ abstract class AppLocalizations {
   /// No description provided for @exportMeasurementsCsvHeader.
   ///
   /// In es, this message translates to:
-  /// **'ID de Medición,Nombre de Medición,Modelo,Fecha de Creación de Medición,ID de Foto,Fecha de Creación de Foto,Fecha de Captura de Foto,Latitud,Longitud,ID de Detección,Calibre (mm),Confianza,Clase'**
+  /// **'ID de Medición,Nombre de Medición,Modelo,Fecha de Creación de Medición,ID de Foto,Nombre Original de Foto,Nombre de Imagen Procesada,Fecha de Creación de Foto,Fecha de Captura de Foto,Latitud,Longitud,ID de Detección,Calibre (mm),Diámetro fruto (px),Diámetro referencia (px),Calibre sin corrección (mm),Calibre corregido (mm),Confianza,Clase,BBox x1,BBox y1,BBox x2,BBox y2'**
   String get exportMeasurementsCsvHeader;
 
   /// No description provided for @exportReportTitle.
@@ -1609,10 +1597,52 @@ abstract class AppLocalizations {
   /// **'        Clase:'**
   String get exportClassLabel;
 
+  /// No description provided for @exportOriginalFilenameLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Nombre original:'**
+  String get exportOriginalFilenameLabel;
+
+  /// No description provided for @exportProcessedFilenameLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Nombre procesado:'**
+  String get exportProcessedFilenameLabel;
+
+  /// No description provided for @exportFruitDiameterPxLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Diámetro fruto (px):'**
+  String get exportFruitDiameterPxLabel;
+
+  /// No description provided for @exportSupportDiameterPxLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Diámetro referencia (px):'**
+  String get exportSupportDiameterPxLabel;
+
+  /// No description provided for @exportRawCaliberLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Calibre sin corrección:'**
+  String get exportRawCaliberLabel;
+
+  /// No description provided for @exportCorrectedCaliberLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Calibre corregido:'**
+  String get exportCorrectedCaliberLabel;
+
+  /// No description provided for @exportBboxLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Caja delimitadora:'**
+  String get exportBboxLabel;
+
   /// No description provided for @exportPlotsCsvHeader.
   ///
   /// In es, this message translates to:
-  /// **'ID de Parcela,Nombre de Parcela,Variedad,Agricultor,ID de Medición,Nombre de Medición,Modelo,Fecha de Creación de Medición,ID de Foto,Fecha de Creación de Foto,Fecha de Captura de Foto,Latitud,Longitud,ID de Detección,Calibre (mm),Confianza,Clase'**
+  /// **'ID de Parcela,Nombre de Parcela,Variedad,Agricultor,ID de Medición,Nombre de Medición,Modelo,Fecha de Creación de Medición,ID de Foto,Nombre Original de Foto,Nombre de Imagen Procesada,Fecha de Creación de Foto,Fecha de Captura de Foto,Latitud,Longitud,ID de Detección,Calibre (mm),Diámetro fruto (px),Diámetro referencia (px),Calibre sin corrección (mm),Calibre corregido (mm),Confianza,Clase,BBox x1,BBox y1,BBox x2,BBox y2'**
   String get exportPlotsCsvHeader;
 
   /// No description provided for @exportPlotsReportTitle.

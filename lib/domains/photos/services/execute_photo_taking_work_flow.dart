@@ -7,6 +7,7 @@ import 'package:fruit_measure_app/domains/measurements/models/measurement.dart';
 import 'package:fruit_measure_app/domains/photos/models/photo.dart';
 import 'package:fruit_measure_app/domains/photos/models/photo_complete.dart';
 import 'package:fruit_measure_app/domains/photos/services/edit_photo.dart';
+import 'package:fruit_measure_app/domains/photos/services/photo_filename_utils.dart';
 import 'package:fruit_measure_app/domains/photos/services/take_and_process_multiple_photos.dart';
 import 'package:fruit_measure_app/domains/photos/services/take_and_process_photo.dart';
 import 'package:fruit_measure_app/domains/photos/views/photo_view.dart';
@@ -27,6 +28,25 @@ Measurement _getMeasurementById({required String measurementId}) {
   return m;
 }
 
+String _processedFilenameFromPhoto({
+  required Photo photo,
+  required XFile processedImage,
+}) {
+  if (photo.originalFilename != null && photo.originalFilename!.isNotEmpty) {
+    return processedFilenameFromOriginal(
+      photo.originalFilename,
+      uniqueId: photo.id,
+    );
+  }
+
+  final processedName = processedImage.name;
+  if (processedName.isNotEmpty) {
+    return safeFilename(basenameOf(processedName));
+  }
+
+  return safeFilename(basenameOf(processedImage.path));
+}
+
 Future<void> _saveImage({
   required Photo photo,
   required XFile originalImage,
@@ -36,16 +56,26 @@ Future<void> _saveImage({
     final String duplicateFilePath =
         (await getApplicationDocumentsDirectory()).path;
 
-    final originalFileName = originalImage.path.split('/').last;
-    final fileExtension = originalFileName.split('.').last;
+    final originalFileName =
+        photo.originalFilename != null && photo.originalFilename!.isNotEmpty
+            ? safeFilename(basenameOf(photo.originalFilename!))
+            : safeFilename(basenameOf(originalImage.path));
+
+    final originalFileExtension = extensionFromFilename(originalFileName);
 
     final originalSavedPath =
-        '$duplicateFilePath/original_${photo.id}.$fileExtension';
+        '$duplicateFilePath/original_${photo.id}.$originalFileExtension';
+
     await originalImage.saveTo(originalSavedPath);
     photo.originalImagePath = originalSavedPath;
 
-    final processedSavedPath =
-        '$duplicateFilePath/processed_${photo.id}.$fileExtension';
+    final processedFileName = _processedFilenameFromPhoto(
+      photo: photo,
+      processedImage: processedImage,
+    );
+
+    final processedSavedPath = '$duplicateFilePath/$processedFileName';
+
     await processedImage.saveTo(processedSavedPath);
     photo.imagePath = processedSavedPath;
 
@@ -62,7 +92,7 @@ Future<void> _saveImage({
     } else {
       try {
         await Gal.putImage(processedSavedPath);
-        photo.galleryPath = 'processed_${photo.id}.$fileExtension';
+        photo.galleryPath = processedFileName;
       } catch (e) {
         photo.galleryPath = null;
       }
@@ -147,6 +177,8 @@ Future<PhotoView?> executePhotoTakingWorkflow({
           imagePath: photo.imagePath,
           originalImagePath: photo.originalImagePath,
           galleryPath: photo.galleryPath,
+          sourceId: photo.sourceId,
+          originalFilename: photo.originalFilename,
           detections: detections,
         );
 
@@ -208,6 +240,8 @@ Future<PhotoView?> executePhotoTakingWorkflow({
         imagePath: newPhoto.imagePath,
         originalImagePath: newPhoto.originalImagePath,
         galleryPath: newPhoto.galleryPath,
+        sourceId: newPhoto.sourceId,
+        originalFilename: newPhoto.originalFilename,
         detections: detections,
       );
 

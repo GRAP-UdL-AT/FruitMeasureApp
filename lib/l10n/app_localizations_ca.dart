@@ -50,8 +50,7 @@ class AppLocalizationsCa extends AppLocalizations {
   String get registerTitle => 'Registre';
 
   @override
-  String get userAlreadyRegistered =>
-      'Usuari ja registrat amb aquest correu electrònic';
+  String get userAlreadyRegistered => 'Aquest nom d\'usuari ja està registrat';
 
   @override
   String get userNotFound => 'Usuari no trobat';
@@ -106,13 +105,6 @@ class AppLocalizationsCa extends AppLocalizations {
 
   @override
   String get nameLabel => 'Nom';
-
-  @override
-  String get emailLabel => 'Correu electrònic';
-
-  @override
-  String get emailRecommended =>
-      'El correu electrònic no és obligatori, però és recomanable per compartir dades';
 
   @override
   String get optionsLabel => 'Opcions';
@@ -344,7 +336,7 @@ class AppLocalizationsCa extends AppLocalizations {
   String get takeNewShot => 'Fer nova captura';
 
   @override
-  String get editShot => 'Editar captura';
+  String get editShot => 'Editar';
 
   @override
   String get detectionFruit => 'Fruit';
@@ -783,14 +775,14 @@ class AppLocalizationsCa extends AppLocalizations {
   String get shareWithOtherApps => 'Compartir amb altres aplicacions';
 
   @override
-  String get appTitle => 'Fruit Measure App';
+  String get appTitle => 'FruitMeasureApp';
 
   @override
   String get errorUnknown => 'Error desconegut';
 
   @override
   String get exportMeasurementsCsvHeader =>
-      'ID de Mesura,Nom de Mesura,Model,Data de Creació de Mesura,ID de Foto,Data de Creació de Foto,Data de Captura de Foto,Latitud,Longitud,ID de Detecció,Calibre (mm),Confiança,Classe';
+      'ID de Mesura,Nom de Mesura,Model,Data de Creació de Mesura,ID de Foto,Nom Original Foto,Nom Imatge Processada,Data de Creació de Foto,Data de Captura de Foto,Latitud,Longitud,ID de Detecció,Calibre (mm),Diàmetre fruit (px),Diàmetre suport (px),Calibre sense correcció (mm),Calibre corregit (mm),Confiança,Classe,BBox x1,BBox y1,BBox x2,BBox y2';
 
   @override
   String get exportReportTitle => 'INFORME D\'EXPORTACIÓ DE MESURES';
@@ -857,8 +849,29 @@ class AppLocalizationsCa extends AppLocalizations {
   String get exportClassLabel => '        Classe:';
 
   @override
+  String get exportOriginalFilenameLabel => 'Nom original:';
+
+  @override
+  String get exportProcessedFilenameLabel => 'Nom processat:';
+
+  @override
+  String get exportFruitDiameterPxLabel => 'Diàmetre fruit (px):';
+
+  @override
+  String get exportSupportDiameterPxLabel => 'Diàmetre suport (px):';
+
+  @override
+  String get exportRawCaliberLabel => 'Calibre sense correcció:';
+
+  @override
+  String get exportCorrectedCaliberLabel => 'Calibre corregit:';
+
+  @override
+  String get exportBboxLabel => 'Caixa delimitadora:';
+
+  @override
   String get exportPlotsCsvHeader =>
-      'ID de Parcel·la,Nom de Parcel·la,Varietat,Agricultor/a,ID de Mesura,Nom de Mesura,Model,Data de Creació de Mesura,ID de Foto,Data de Creació de Foto,Data de Captura de Foto,Latitud,Longitud,ID de Detecció,Calibre (mm),Confiança,Classe';
+      'ID de Parcel·la,Nom de Parcel·la,Varietat,Agricultor/a,ID de Mesura,Nom de Mesura,Model,Data de Creació de Mesura,ID de Foto,Nom Original Foto,Nom Imatge Processada,Data de Creació de Foto,Data de Captura de Foto,Latitud,Longitud,ID de Detecció,Calibre (mm),Diàmetre fruit (px),Diàmetre suport (px),Calibre sense correcció (mm),Calibre corregit (mm),Confiança,Classe,BBox x1,BBox y1,BBox x2,BBox y2';
 
   @override
   String get exportPlotsReportTitle => 'INFORME D\'EXPORTACIÓ DE PARCEL·LES';

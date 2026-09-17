@@ -110,7 +110,7 @@ class _LogInViewState extends State<LogInView> with UpdateState<LogInView> {
               controller: textEditingController,
               focusNode: focusNode,
               onChanged: (value) => userName = value,
-              keyboardType: TextInputType.emailAddress,
+              keyboardType: TextInputType.text,
               autocorrect: false,
               enableSuggestions: false,
               textCapitalization: TextCapitalization.none,

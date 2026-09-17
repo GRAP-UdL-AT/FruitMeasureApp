@@ -1,7 +1,7 @@
 import 'package:dartx/dartx.dart';
 import 'package:flutter/material.dart';
-import 'package:fruit_measure_app/components/custom_app_bar.dart';
 import 'package:fruit_measure_app/components/account_end_drawer.dart';
+import 'package:fruit_measure_app/components/custom_app_bar.dart';
 import 'package:fruit_measure_app/domains/users/components/user_card.dart';
 import 'package:fruit_measure_app/domains/users/models/user.dart';
 import 'package:fruit_measure_app/hive_boxes.dart';
@@ -24,9 +24,7 @@ class _SwitchAccountViewState extends State<SwitchAccountView> {
 
     final userBox = Hive.box<User>(userBoxName);
 
-    users = userBox.values.toList().sortedBy(
-      (e) => e.email.trim().isEmpty ? e.userName : e.email,
-    );
+    users = userBox.values.toList().sortedBy((e) => e.userName);
   }
 
   @override

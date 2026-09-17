@@ -14,6 +14,7 @@ class PlotComplete extends Plot {
     required super.variety,
     required super.lat,
     required super.lng,
+    super.sourceId,
     required this.measurements,
   });
 
@@ -29,6 +30,7 @@ class PlotComplete extends Plot {
     variety: json['variety'],
     lat: json['lat'],
     lng: json['lng'],
+    sourceId: json['sourceId'],
     measurements:
         (json['measurements'] as List)
             .map(

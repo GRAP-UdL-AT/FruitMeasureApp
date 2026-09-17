@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:fruit_measure_app/components/account_end_drawer.dart';
 import 'package:fruit_measure_app/components/colors.dart';
 import 'package:fruit_measure_app/components/custom_app_bar.dart';
-import 'package:fruit_measure_app/components/account_end_drawer.dart';
 import 'package:fruit_measure_app/components/custom_snackbar/custom_snackbar.dart';
 import 'package:fruit_measure_app/domains/measurements/models/measurement.dart';
 import 'package:fruit_measure_app/domains/measurements/models/model_enum.dart';
@@ -174,7 +174,7 @@ class _MeasurementViewState extends State<MeasurementView>
                     ),
                     const SizedBox(height: 8),
                     DropdownButtonFormField<Model>(
-                      value: widget.measurement.model,
+                      initialValue: widget.measurement.model,
                       onChanged:
                           isEditing
                               ? (Model? value) {

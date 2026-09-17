@@ -3,9 +3,9 @@ import 'dart:io';
 import 'package:dartx/dartx.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
+import 'package:fruit_measure_app/components/account_end_drawer.dart';
 import 'package:fruit_measure_app/components/colors.dart';
 import 'package:fruit_measure_app/components/custom_app_bar.dart';
-import 'package:fruit_measure_app/components/account_end_drawer.dart';
 import 'package:fruit_measure_app/components/custom_snackbar/custom_snackbar.dart';
 import 'package:fruit_measure_app/components/empty_list_component.dart';
 import 'package:fruit_measure_app/domains/detections/models/detection.dart';
@@ -14,6 +14,7 @@ import 'package:fruit_measure_app/domains/measurements/models/measurement_comple
 import 'package:fruit_measure_app/domains/measurements/models/measurement_options_actions.dart';
 import 'package:fruit_measure_app/domains/measurements/models/types_measurement_options_actions.dart';
 import 'package:fruit_measure_app/domains/measurements/services/export_measurements.dart';
+import 'package:fruit_measure_app/domains/measurements/services/import_measurement_identity.dart';
 import 'package:fruit_measure_app/domains/measurements/services/import_measurements.dart';
 import 'package:fruit_measure_app/domains/measurements/views/measurement_view.dart';
 import 'package:fruit_measure_app/domains/measurements/views/measurements_calendar_view.dart';
@@ -608,16 +609,32 @@ class _MeasurementListViewState extends State<MeasurementListView>
                         int restoredCount = 0;
                         int existingCount = 0;
 
-                        final existingMeasurements = measurements.toList();
+
+                        final existingMeasurements =
+                            Hive.box<Measurement>(measurementBoxName).values
+                                .where(
+                                  (existing) =>
+                                      existing.plotId == widget.plot.id,
+                                )
+                                .toList();
+                        final importedMeasurementKeys = <String>{};
 
                         for (final measurement in result.measurements) {
-                          if (measurement.plotId != widget.plot.id) {
+                         
+
+                          final measurementKey = canonicalSourceId(
+                            measurement.id,
+                            measurement.sourceId,
+                          );
+                          if (!importedMeasurementKeys.add(measurementKey)) {
                             continue;
                           }
 
-                          if (_measurementExists(
-                            measurement.id,
-                            existingMeasurements,
+                          if (existingMeasurements.any(
+                            (existing) => importedMeasurementMatches(
+                              measurement,
+                              existing,
+                            ),
                           )) {
                             final hadChanges =
                                 await _updateMeasurementAndRestorePhotos(
@@ -631,6 +648,18 @@ class _MeasurementListViewState extends State<MeasurementListView>
                           } else {
                             await _importMeasurementWithPhotosAndDetections(
                               measurement,
+                            );
+                            existingMeasurements.add(
+                              Measurement(
+                                id: measurement.id,
+                                plotId: widget.plot.id,
+                                model: measurement.model,
+                                name: measurement.name,
+                                observations: measurement.observations,
+                                creationDate: measurement.creationDate,
+                                modificationDate: measurement.modificationDate,
+                                sourceId: measurementKey,
+                              ),
                             );
                             importedCount++;
                           }
@@ -711,19 +740,42 @@ class _MeasurementListViewState extends State<MeasurementListView>
     );
   }
 
-  bool _measurementExists(
-    String measurementId,
-    List<Measurement> existingMeasurements,
-  ) {
-    return existingMeasurements.any((m) => m.id == measurementId);
+  Measurement? _findExistingMeasurement(
+    String measurementId, {
+    String? sourceId,
+    String? plotId,
+  }) {
+    final measurementBox = Hive.box<Measurement>(measurementBoxName);
+    for (final existing in measurementBox.values) {
+      if (plotId != null && existing.plotId != plotId) continue;
+      if (measurementIdentityMatches(measurementId, sourceId, existing)) {
+        return existing;
+      }
+    }
+    return null;
   }
 
-  Future<void> _restoreMissingPhotos(MeasurementComplete measurement) async {
+  Future<bool> _restoreMissingPhotos(MeasurementComplete measurement) async {
     final photoBox = Hive.box<Photo>(photoBoxName);
     final detectionsBox = Hive.box<Detection>(detectionsBoxName);
+    final targetMeasurementId =
+        _findExistingMeasurement(
+          measurement.id,
+          sourceId: measurement.sourceId,
+          plotId: widget.plot.id,
+        )?.id ??
+        measurement.id;
+    var hasChanges = false;
 
     for (final photoComplete in measurement.photos) {
-      final existingPhoto = photoBox.get(photoComplete.id);
+      Photo? existingPhoto;
+      for (final photo in photoBox.values) {
+        if (photo.measurementId == targetMeasurementId &&
+            importedPhotoMatches(photoComplete, photo)) {
+          existingPhoto = photo;
+          break;
+        }
+      }
 
       if (existingPhoto == null) {
         String? galleryPathToUse = photoComplete.galleryPath;
@@ -758,9 +810,10 @@ class _MeasurementListViewState extends State<MeasurementListView>
           }
         }
 
+        final newPhotoId = const Uuid().v4();
         final photo = Photo(
-          id: photoComplete.id,
-          measurementId: photoComplete.measurementId,
+          id: newPhotoId,
+          measurementId: targetMeasurementId,
           captureDate: photoComplete.captureDate,
           creationDate: photoComplete.creationDate,
           latitude: photoComplete.latitude,
@@ -768,21 +821,80 @@ class _MeasurementListViewState extends State<MeasurementListView>
           imagePath: imagePathToUse,
           galleryPath: galleryPathToUse,
           originalImagePath: originalImagePathToUse,
+          sourceId: canonicalSourceId(photoComplete.id, photoComplete.sourceId),
+          originalFilename: photoComplete.originalFilename,
         );
-        await photoBox.put(photo.id, photo);
+        await photoBox.put(newPhotoId, photo);
+        hasChanges = true;
 
         for (final detection in photoComplete.detections) {
-          await detectionsBox.put(detection.id, detection);
+          final newDetectionId = const Uuid().v4();
+          final newDetection = Detection(
+            id: newDetectionId,
+            photoId: newPhotoId,
+            confidence: detection.confidence,
+            cls: detection.cls,
+            x1: detection.x1,
+            y1: detection.y1,
+            x2: detection.x2,
+            y2: detection.y2,
+            caliber: detection.caliber,
+            fruitDiameterPx: detection.fruitDiameterPx,
+            supportDiameterPx: detection.supportDiameterPx,
+            rawCaliberMm: detection.rawCaliberMm,
+            correctedCaliberMm: detection.correctedCaliberMm,
+          );
+          await detectionsBox.put(newDetectionId, newDetection);
+        }
+      } else {
+
+        final existingDetections =
+            detectionsBox.values
+                .where((detection) => detection.photoId == existingPhoto!.id)
+                .toList();
+
+        for (final detection in photoComplete.detections) {
+          final alreadyPresent = existingDetections.any(
+            (existingDetection) =>
+                importedDetectionMatches(detection, existingDetection),
+          );
+          if (alreadyPresent) continue;
+
+          final newDetectionId = const Uuid().v4();
+          final newDetection = Detection(
+            id: newDetectionId,
+            photoId: existingPhoto.id,
+            confidence: detection.confidence,
+            cls: detection.cls,
+            x1: detection.x1,
+            y1: detection.y1,
+            x2: detection.x2,
+            y2: detection.y2,
+            caliber: detection.caliber,
+            fruitDiameterPx: detection.fruitDiameterPx,
+            supportDiameterPx: detection.supportDiameterPx,
+            rawCaliberMm: detection.rawCaliberMm,
+            correctedCaliberMm: detection.correctedCaliberMm,
+          );
+          await detectionsBox.put(newDetectionId, newDetection);
+          existingDetections.add(newDetection);
+          hasChanges = true;
         }
       }
     }
+
+    return hasChanges;
   }
 
   Future<bool> _updateMeasurementAndRestorePhotos(
     MeasurementComplete measurement,
   ) async {
     final measurementBox = Hive.box<Measurement>(measurementBoxName);
-    final existingMeasurement = measurementBox.get(measurement.id);
+    final existingMeasurement = _findExistingMeasurement(
+      measurement.id,
+      sourceId: measurement.sourceId,
+      plotId: widget.plot.id,
+    );
 
     if (existingMeasurement == null) return false;
 
@@ -799,12 +911,11 @@ class _MeasurementListViewState extends State<MeasurementListView>
       existingMeasurement.observations = measurement.observations;
       existingMeasurement.modificationDate = measurement.modificationDate;
 
-      await measurementBox.put(measurement.id, existingMeasurement);
+      await measurementBox.put(existingMeasurement.id, existingMeasurement);
     }
 
-    await _restoreMissingPhotos(measurement);
-
-    return hasChanges;
+    final photosRestored = await _restoreMissingPhotos(measurement);
+    return photosRestored || hasChanges;
   }
 
   Future<void> _importMeasurementWithPhotosAndDetections(
@@ -814,21 +925,21 @@ class _MeasurementListViewState extends State<MeasurementListView>
     final photoBox = Hive.box<Photo>(photoBoxName);
     final detectionsBox = Hive.box<Detection>(detectionsBoxName);
 
+    final newMeasurementId = const Uuid().v4();
     final importedMeasurement = Measurement(
-      id: measurement.id,
-      plotId: measurement.plotId,
+      id: newMeasurementId,
+      plotId: widget.plot.id,
       model: measurement.model,
       name: measurement.name,
       observations: measurement.observations,
       creationDate: measurement.creationDate,
       modificationDate: measurement.modificationDate,
+      sourceId: canonicalSourceId(measurement.id, measurement.sourceId),
     );
 
-    await measurementBox.put(measurement.id, importedMeasurement);
+    await measurementBox.put(newMeasurementId, importedMeasurement);
 
     for (final photoComplete in measurement.photos) {
-      final existingPhoto = photoBox.get(photoComplete.id);
-
       String? galleryPathToUse = photoComplete.galleryPath;
       String? imagePathToUse = photoComplete.imagePath;
       String? originalImagePathToUse = photoComplete.originalImagePath;
@@ -840,10 +951,6 @@ class _MeasurementListViewState extends State<MeasurementListView>
           File(originalImagePathToUse).existsSync();
 
       if (!imageFileExists && !originalFileExists) {
-        if (existingPhoto != null && existingPhoto.galleryPath != null) {
-          galleryPathToUse = existingPhoto.galleryPath;
-        }
-
         if (galleryPathToUse != null && galleryPathToUse.isNotEmpty) {
           final recoveredPath = await recoverPhotoFromGallery(
             galleryPath: galleryPathToUse,
@@ -865,9 +972,10 @@ class _MeasurementListViewState extends State<MeasurementListView>
         }
       }
 
+      final newPhotoId = const Uuid().v4();
       final photo = Photo(
-        id: photoComplete.id,
-        measurementId: photoComplete.measurementId,
+        id: newPhotoId,
+        measurementId: newMeasurementId,
         captureDate: photoComplete.captureDate,
         creationDate: photoComplete.creationDate,
         latitude: photoComplete.latitude,
@@ -875,11 +983,29 @@ class _MeasurementListViewState extends State<MeasurementListView>
         imagePath: imagePathToUse,
         galleryPath: galleryPathToUse,
         originalImagePath: originalImagePathToUse,
+        sourceId: canonicalSourceId(photoComplete.id, photoComplete.sourceId),
+        originalFilename: photoComplete.originalFilename,
       );
-      await photoBox.put(photo.id, photo);
+      await photoBox.put(newPhotoId, photo);
 
       for (final detection in photoComplete.detections) {
-        await detectionsBox.put(detection.id, detection);
+        final newDetectionId = const Uuid().v4();
+        final newDetection = Detection(
+          id: newDetectionId,
+          photoId: newPhotoId,
+          confidence: detection.confidence,
+          cls: detection.cls,
+          x1: detection.x1,
+          y1: detection.y1,
+          x2: detection.x2,
+          y2: detection.y2,
+          caliber: detection.caliber,
+          fruitDiameterPx: detection.fruitDiameterPx,
+          supportDiameterPx: detection.supportDiameterPx,
+          rawCaliberMm: detection.rawCaliberMm,
+          correctedCaliberMm: detection.correctedCaliberMm,
+        );
+        await detectionsBox.put(newDetectionId, newDetection);
       }
     }
   }

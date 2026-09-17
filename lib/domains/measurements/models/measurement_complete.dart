@@ -11,19 +11,24 @@ class MeasurementComplete extends Measurement {
     required super.observations,
     required super.creationDate,
     required super.modificationDate,
+    super.sourceId,
+    this.sourcePlotId,
     required this.photos,
   });
   factory MeasurementComplete.fromJson(Map<String, dynamic> json) =>
       MeasurementComplete(
         id: json['id'],
         plotId: json['plotId'],
-        model: json['model'] != null
-            ? Model.values.firstWhere((e) => e.name == json['model'])
-            : null,
+        model:
+            json['model'] != null
+                ? Model.values.firstWhere((e) => e.name == json['model'])
+                : null,
         name: json['name'],
         observations: json['observations'],
         creationDate: DateTime.parse(json['creationDate']),
         modificationDate: DateTime.parse(json['modificationDate']),
+        sourceId: json['sourceId'],
+        sourcePlotId: json['sourcePlotId'],
         photos:
             (json['photos'] as List)
                 .map((photoJson) => PhotoComplete.fromJson(photoJson))
@@ -31,11 +36,13 @@ class MeasurementComplete extends Measurement {
       );
 
   final List<PhotoComplete> photos;
+  final String? sourcePlotId;
 
   @override
   Map<String, dynamic> toJson() {
     return {
       ...super.toJson(),
+      'sourcePlotId': sourcePlotId,
       'photos': photos.map((e) => e.toJson()).toList(),
     };
   }

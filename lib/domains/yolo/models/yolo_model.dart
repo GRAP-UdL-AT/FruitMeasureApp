@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:fruit_measure_app/domains/measurements/models/model_enum.dart';
 import 'package:ultralytics_yolo/ultralytics_yolo.dart';
@@ -12,7 +14,8 @@ class YoloModel {
     switch (model) {
       case Model.fruto:
       case Model.corimbo:
-        return 'fma_model_corimbo';
+        if (Platform.isIOS) return 'fma_model_corimbo';
+        return 'yolo11n_fruit_fp32_1120';
       case Model.caixa:
         return 'fma_model_caixa';
     }
