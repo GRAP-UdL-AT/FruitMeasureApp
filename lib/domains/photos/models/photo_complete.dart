@@ -14,6 +14,7 @@ class PhotoComplete extends Photo {
     super.galleryPath,
     super.originalImagePath,
     super.sourceId,
+    super.originalFilename,
     required this.detections,
   });
 
@@ -32,6 +33,7 @@ class PhotoComplete extends Photo {
       galleryPath: json['galleryPath'],
       originalImagePath: json['originalImagePath'],
       sourceId: json['sourceId'],
+      originalFilename: json['originalFilename'],
       detections:
           json['detections'] != null
               ? (json['detections'] as List)

@@ -20,7 +20,7 @@
     <application
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
-        android:label="fruit_measure_app"
+        android:label="FruitMeasureApp"
         android:requestLegacyExternalStorage="true">
         <activity
             android:name=".MainActivity"

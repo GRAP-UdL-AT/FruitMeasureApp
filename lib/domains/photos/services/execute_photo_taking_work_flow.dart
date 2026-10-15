@@ -7,6 +7,7 @@ import 'package:fruit_measure_app/domains/measurements/models/measurement.dart';
 import 'package:fruit_measure_app/domains/photos/models/photo.dart';
 import 'package:fruit_measure_app/domains/photos/models/photo_complete.dart';
 import 'package:fruit_measure_app/domains/photos/services/edit_photo.dart';
+import 'package:fruit_measure_app/domains/photos/services/photo_filename_utils.dart';
 import 'package:fruit_measure_app/domains/photos/services/take_and_process_multiple_photos.dart';
 import 'package:fruit_measure_app/domains/photos/services/take_and_process_photo.dart';
 import 'package:fruit_measure_app/domains/photos/views/photo_view.dart';
@@ -27,48 +28,23 @@ Measurement _getMeasurementById({required String measurementId}) {
   return m;
 }
 
-String _basename(String path) {
-  return path.split(RegExp(r'[/\\]')).last;
-}
-
-String _safeFilename(String filename) {
-  return filename
-      .replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')
-      .replaceAll(RegExp(r'\s+'), '_');
-}
-
-String _basenameWithoutExtension(String filename) {
-  final dotIndex = filename.lastIndexOf('.');
-  if (dotIndex <= 0) return filename;
-  return filename.substring(0, dotIndex);
-}
-
-String _extensionFromFilename(String filename, {String fallback = 'jpg'}) {
-  final dotIndex = filename.lastIndexOf('.');
-  if (dotIndex <= 0 || dotIndex == filename.length - 1) return fallback;
-  return filename.substring(dotIndex + 1).toLowerCase();
-}
-
 String _processedFilenameFromPhoto({
   required Photo photo,
   required XFile processedImage,
 }) {
-  final sourceFilename = photo.sourceId;
-
-  if (sourceFilename != null && sourceFilename.isNotEmpty) {
-    final safeSource = _safeFilename(_basename(sourceFilename));
-    final sourceBasename = _basenameWithoutExtension(safeSource);
-
-    // La imatge processada es genera amb encodePng, per tant l'extensió correcta és .png
-    return '${sourceBasename}_processed.png';
+  if (photo.originalFilename != null && photo.originalFilename!.isNotEmpty) {
+    return processedFilenameFromOriginal(
+      photo.originalFilename,
+      uniqueId: photo.id,
+    );
   }
 
   final processedName = processedImage.name;
   if (processedName.isNotEmpty) {
-    return _safeFilename(_basename(processedName));
+    return safeFilename(basenameOf(processedName));
   }
 
-  return _safeFilename(_basename(processedImage.path));
+  return safeFilename(basenameOf(processedImage.path));
 }
 
 Future<void> _saveImage({
@@ -80,11 +56,12 @@ Future<void> _saveImage({
     final String duplicateFilePath =
         (await getApplicationDocumentsDirectory()).path;
 
-    final originalFileName = photo.sourceId != null && photo.sourceId!.isNotEmpty
-        ? _safeFilename(_basename(photo.sourceId!))
-        : _safeFilename(_basename(originalImage.path));
+    final originalFileName =
+        photo.originalFilename != null && photo.originalFilename!.isNotEmpty
+            ? safeFilename(basenameOf(photo.originalFilename!))
+            : safeFilename(basenameOf(originalImage.path));
 
-    final originalFileExtension = _extensionFromFilename(originalFileName);
+    final originalFileExtension = extensionFromFilename(originalFileName);
 
     final originalSavedPath =
         '$duplicateFilePath/original_${photo.id}.$originalFileExtension';
@@ -98,12 +75,6 @@ Future<void> _saveImage({
     );
 
     final processedSavedPath = '$duplicateFilePath/$processedFileName';
-
-    print('SAVE ORIGINAL SOURCE ID: ${photo.sourceId}');
-    print('SAVE ORIGINAL FILE NAME: $originalFileName');
-    print('SAVE PROCESSED XFILE NAME: ${processedImage.name}');
-    print('SAVE PROCESSED FINAL NAME: $processedFileName');
-    print('SAVE PROCESSED FINAL PATH: $processedSavedPath');
 
     await processedImage.saveTo(processedSavedPath);
     photo.imagePath = processedSavedPath;
@@ -207,6 +178,7 @@ Future<PhotoView?> executePhotoTakingWorkflow({
           originalImagePath: photo.originalImagePath,
           galleryPath: photo.galleryPath,
           sourceId: photo.sourceId,
+          originalFilename: photo.originalFilename,
           detections: detections,
         );
 
@@ -269,6 +241,7 @@ Future<PhotoView?> executePhotoTakingWorkflow({
         originalImagePath: newPhoto.originalImagePath,
         galleryPath: newPhoto.galleryPath,
         sourceId: newPhoto.sourceId,
+        originalFilename: newPhoto.originalFilename,
         detections: detections,
       );
 

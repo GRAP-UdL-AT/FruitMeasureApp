@@ -96,6 +96,10 @@ extension DetectionCaixa on Detection {
       x2: x2,
       y2: y2,
       caliber: newCaliber ?? caliber,
+      fruitDiameterPx: fruitDiameterPx,
+      supportDiameterPx: supportDiameterPx,
+      rawCaliberMm: rawCaliberMm,
+      correctedCaliberMm: correctedCaliberMm,
     );
   }
 }

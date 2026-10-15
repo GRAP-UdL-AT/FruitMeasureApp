@@ -49,6 +49,8 @@ PODS:
   - GoogleMaps (9.4.0):
     - GoogleMaps/Maps (= 9.4.0)
   - GoogleMaps/Maps (9.4.0)
+  - heif_converter (1.0.6):
+    - Flutter
   - image_picker_ios (0.0.1):
     - Flutter
   - package_info_plus (0.4.5):
@@ -76,6 +78,7 @@ DEPENDENCIES:
   - gal (from `.symlinks/plugins/gal/darwin`)
   - geolocator_apple (from `.symlinks/plugins/geolocator_apple/darwin`)
   - google_maps_flutter_ios (from `.symlinks/plugins/google_maps_flutter_ios/ios`)
+  - heif_converter (from `.symlinks/plugins/heif_converter/ios`)
   - image_picker_ios (from `.symlinks/plugins/image_picker_ios/ios`)
   - package_info_plus (from `.symlinks/plugins/package_info_plus/ios`)
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
@@ -104,6 +107,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/geolocator_apple/darwin"
   google_maps_flutter_ios:
     :path: ".symlinks/plugins/google_maps_flutter_ios/ios"
+  heif_converter:
+    :path: ".symlinks/plugins/heif_converter/ios"
   image_picker_ios:
     :path: ".symlinks/plugins/image_picker_ios/ios"
   package_info_plus:
@@ -129,6 +134,7 @@ SPEC CHECKSUMS:
   Google-Maps-iOS-Utils: 0a484b05ed21d88c9f9ebbacb007956edd508a96
   google_maps_flutter_ios: 0291eb2aa252298a769b04d075e4a9d747ff7264
   GoogleMaps: 0608099d4870cac8754bdba9b6953db543432438
+  heif_converter: 6466c5b7e2ca1b3d4805fa47e863e74debdb64dd
   image_picker_ios: e0ece4aa2a75771a7de3fa735d26d90817041326
   package_info_plus: af8e2ca6888548050f16fa2f1938db7b5a5df499
   path_provider_foundation: bb55f6dbba17d0dccd6737fe6f7f34fbd0376880
@@ -139,6 +145,6 @@ SPEC CHECKSUMS:
   ultralytics_yolo: 650ea1417a5b3ef9b1acc55e6edef5385018d3b5
   url_launcher_ios: 7a95fa5b60cc718a708b8f2966718e93db0cef1b
 
-PODFILE CHECKSUM: 476867d8dba7cc4b0dece72feb4dbf0f8d834627
+PODFILE CHECKSUM: 890d44fa598790e51efe4fadcfc0b6201c145ccd
 
 COCOAPODS: 1.16.2

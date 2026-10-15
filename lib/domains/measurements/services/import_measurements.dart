@@ -50,8 +50,11 @@ Future<ImportMeasurementsResult> importMeasurements() async {
       );
     }
 
+
     if (!filePath.endsWith('.measurement.fma') &&
-        !filePath.contains('.measurement.fma')) {
+        !filePath.contains('.measurement.fma') &&
+        !filePath.endsWith('.measurements.fma') &&
+        !filePath.contains('.measurements.fma')) {
       return ImportMeasurementsResult(
         measurements: [],
         errorMessage: 'wrongFileTypeGeneric',

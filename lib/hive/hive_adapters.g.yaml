@@ -73,7 +73,7 @@ types:
         index: 7
   Photo:
     typeId: 3
-    nextIndex: 16
+    nextIndex: 17
     fields:
       id:
         index: 0
@@ -95,6 +95,8 @@ types:
         index: 14
       sourceId:
         index: 15
+      originalFilename:
+        index: 16
   Detection:
     typeId: 4
     nextIndex: 15

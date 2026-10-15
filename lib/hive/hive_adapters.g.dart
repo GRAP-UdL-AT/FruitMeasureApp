@@ -205,13 +205,14 @@ class PhotoAdapter extends TypeAdapter<Photo> {
       galleryPath: fields[13] as String?,
       originalImagePath: fields[14] as String?,
       sourceId: fields[15] as String?,
+      originalFilename: fields[16] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Photo obj) {
     writer
-      ..writeByte(10)
+      ..writeByte(11)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -231,7 +232,9 @@ class PhotoAdapter extends TypeAdapter<Photo> {
       ..writeByte(14)
       ..write(obj.originalImagePath)
       ..writeByte(15)
-      ..write(obj.sourceId);
+      ..write(obj.sourceId)
+      ..writeByte(16)
+      ..write(obj.originalFilename);
   }
 
   @override

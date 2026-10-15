@@ -50,7 +50,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get registerTitle => 'Register';
 
   @override
-  String get userAlreadyRegistered => 'User already registered with this email';
+  String get userAlreadyRegistered => 'This username is already registered';
 
   @override
   String get userNotFound => 'User not found';
@@ -105,13 +105,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get nameLabel => 'Name';
-
-  @override
-  String get emailLabel => 'Email';
-
-  @override
-  String get emailRecommended =>
-      'Email is not mandatory but recommended for sharing data';
 
   @override
   String get optionsLabel => 'Options';
@@ -342,7 +335,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get takeNewShot => 'Take new shot';
 
   @override
-  String get editShot => 'Edit shot';
+  String get editShot => 'Edit';
 
   @override
   String get detectionFruit => 'Fruit';
@@ -778,14 +771,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shareWithOtherApps => 'Share with other apps';
 
   @override
-  String get appTitle => 'Fruit Measure App';
+  String get appTitle => 'FruitMeasureApp';
 
   @override
   String get errorUnknown => 'Unknown error';
 
   @override
   String get exportMeasurementsCsvHeader =>
-      'Measurement ID,Measurement Name,Model,Measurement Creation Date,Photo ID,Photo Creation Date,Photo Capture Date,Latitude,Longitude,Detection ID,Caliber (mm),Confidence,Class';
+      'Measurement ID,Measurement Name,Model,Measurement Creation Date,Photo ID,Original Photo Filename,Processed Image Filename,Photo Creation Date,Photo Capture Date,Latitude,Longitude,Detection ID,Caliber (mm),Fruit Diameter (px),Reference Diameter (px),Caliber Before Correction (mm),Caliber After Correction (mm),Confidence,Class,BBox x1,BBox y1,BBox x2,BBox y2';
 
   @override
   String get exportReportTitle => 'MEASUREMENTS EXPORT REPORT';
@@ -852,8 +845,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportClassLabel => '        Class:';
 
   @override
+  String get exportOriginalFilenameLabel => 'Original filename:';
+
+  @override
+  String get exportProcessedFilenameLabel => 'Processed filename:';
+
+  @override
+  String get exportFruitDiameterPxLabel => 'Fruit diameter (px):';
+
+  @override
+  String get exportSupportDiameterPxLabel => 'Reference diameter (px):';
+
+  @override
+  String get exportRawCaliberLabel => 'Caliber before correction:';
+
+  @override
+  String get exportCorrectedCaliberLabel => 'Caliber after correction:';
+
+  @override
+  String get exportBboxLabel => 'Bounding box:';
+
+  @override
   String get exportPlotsCsvHeader =>
-      'Plot ID,Plot Name,Variety,Farmer,Measurement ID,Measurement Name,Model,Measurement Creation Date,Photo ID,Photo Creation Date,Photo Capture Date,Latitude,Longitude,Detection ID,Caliber (mm),Confidence,Class';
+      'Plot ID,Plot Name,Variety,Farmer,Measurement ID,Measurement Name,Model,Measurement Creation Date,Photo ID,Original Photo Filename,Processed Image Filename,Photo Creation Date,Photo Capture Date,Latitude,Longitude,Detection ID,Caliber (mm),Fruit Diameter (px),Reference Diameter (px),Caliber Before Correction (mm),Caliber After Correction (mm),Confidence,Class,BBox x1,BBox y1,BBox x2,BBox y2';
 
   @override
   String get exportPlotsReportTitle => 'PLOTS EXPORT REPORT';

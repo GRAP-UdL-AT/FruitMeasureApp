@@ -1,3 +1,5 @@
+require 'shellwords'
+
 # Uncomment this line to define a global platform for your project
 platform :ios, '16.0'
 
@@ -39,10 +41,14 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
-    if target.name == "geolocator_apple"
-        target.build_configurations.each do |config|
-            config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)', 'BYPASS_PERMISSION_LOCATION_ALWAYS=1']
-        end
+    if target.name == 'geolocator_apple'
+      target.build_configurations.each do |config|
+        definitions = config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] || []
+        definitions = Shellwords.split(definitions) if definitions.is_a?(String)
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = (
+          ['$(inherited)'] + definitions + ['BYPASS_PERMISSION_LOCATION_ALWAYS=1']
+        ).uniq
+      end
     end
   end
 end

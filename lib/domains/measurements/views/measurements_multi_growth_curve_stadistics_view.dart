@@ -1,7 +1,7 @@
 import 'package:dartx/dartx.dart';
 import 'package:flutter/material.dart';
-import 'package:fruit_measure_app/components/custom_app_bar.dart';
 import 'package:fruit_measure_app/components/account_end_drawer.dart';
+import 'package:fruit_measure_app/components/custom_app_bar.dart';
 import 'package:fruit_measure_app/domains/charts/models/chart_type_enum.dart';
 import 'package:fruit_measure_app/domains/charts/models/plot_chart_series.dart';
 import 'package:fruit_measure_app/domains/charts/views/growth_line_chart_component.dart';

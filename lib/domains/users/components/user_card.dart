@@ -32,7 +32,6 @@ class UserCard extends StatelessWidget {
           ),
         ),
         title: Text(user.userName),
-        subtitle: Text(user.email),
         onTap:
             currentUser?.id == user.id
                 ? null

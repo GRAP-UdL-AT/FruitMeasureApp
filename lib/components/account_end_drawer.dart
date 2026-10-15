@@ -48,7 +48,9 @@ class AccountEndDrawer extends StatelessWidget {
               onPressed: () {
                 userLogOut();
                 Navigator.of(dialogContext).pop();
-                Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
+                Navigator.of(
+                  context,
+                ).pushNamedAndRemoveUntil('/login', (_) => false);
               },
             ),
           ],
@@ -75,22 +77,17 @@ class AccountEndDrawer extends StatelessWidget {
                   const Icon(Icons.account_circle, color: fmaAppBarBlack),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(currentUser?.userName ?? loc.profileMenuItem),
-                        if (currentUser?.email.isNotEmpty == true)
-                          Text(
-                            currentUser!.email,
-                            style: Theme.of(context).textTheme.bodySmall,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                      ],
+                    child: Text(
+                      currentUser?.userName ?? loc.profileMenuItem,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   OutlinedButton.icon(
-                    icon: const Icon(Icons.close, color: fmaAppBarBlack, size: 18),
+                    icon: const Icon(
+                      Icons.close,
+                      color: fmaAppBarBlack,
+                      size: 18,
+                    ),
                     label: Text(
                       closeMenuLabel,
                       style: const TextStyle(color: fmaAppBarBlack),

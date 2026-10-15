@@ -1,9 +1,9 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:fruit_measure_app/components/account_end_drawer.dart';
 import 'package:fruit_measure_app/components/colors.dart';
 import 'package:fruit_measure_app/components/custom_app_bar.dart';
-import 'package:fruit_measure_app/components/account_end_drawer.dart';
 import 'package:fruit_measure_app/components/custom_snackbar/custom_snackbar.dart';
 import 'package:fruit_measure_app/components/google_maps_container.dart';
 import 'package:fruit_measure_app/domains/detections/services/edit_detection.dart';
@@ -28,11 +28,15 @@ class PhotoViewArguments {
     required this.takenImage,
 
     required this.isCreatePhoto,
+    this.photos,
+    this.photoIndex,
   });
 
   final PhotoComplete photo;
   final XFile? takenImage;
   final bool isCreatePhoto;
+  final List<PhotoComplete>? photos;
+  final int? photoIndex;
 }
 
 class PhotoView extends StatefulWidget {
@@ -42,12 +46,16 @@ class PhotoView extends StatefulWidget {
     required this.takenImage,
     required this.isCreatePhoto,
     this.takingType,
+    this.photos,
+    this.photoIndex,
   });
 
   final PhotoComplete photo;
   final XFile? takenImage;
   final bool isCreatePhoto;
   final ImageSource? takingType;
+  final List<PhotoComplete>? photos;
+  final int? photoIndex;
 
   @override
   State<PhotoView> createState() => _PhotoViewState();
@@ -62,6 +70,26 @@ class _PhotoViewState extends State<PhotoView> with UpdateState<PhotoView> {
   bool _isRecoveringFromGallery = false;
 
   late final List<TextEditingController> _caliberControllers;
+
+  void _navigatePhoto(int delta) {
+    final photos = widget.photos;
+    final index = widget.photoIndex;
+    if (photos == null || index == null) return;
+    final nextIndex = index + delta;
+    if (nextIndex < 0 || nextIndex >= photos.length) return;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder:
+            (_) => PhotoView(
+              photo: photos[nextIndex],
+              takenImage: null,
+              isCreatePhoto: false,
+              photos: photos,
+              photoIndex: nextIndex,
+            ),
+      ),
+    );
+  }
 
   void _confirmDelete() {
     bool deleteFromGallery = false;
@@ -262,6 +290,35 @@ class _PhotoViewState extends State<PhotoView> with UpdateState<PhotoView> {
         builder: (context, constraints) {
           return Column(
             children: [
+              if (widget.photos != null && widget.photoIndex != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      IconButton(
+                        tooltip: 'Foto anterior',
+                        onPressed:
+                            widget.photoIndex! > 0
+                                ? () => _navigatePhoto(-1)
+                                : null,
+                        icon: const Icon(Icons.chevron_left),
+                      ),
+                      Text(
+                        '${widget.photoIndex! + 1}/${widget.photos!.length}',
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      IconButton(
+                        tooltip: 'Foto siguiente',
+                        onPressed:
+                            widget.photoIndex! < widget.photos!.length - 1
+                                ? () => _navigatePhoto(1)
+                                : null,
+                        icon: const Icon(Icons.chevron_right),
+                      ),
+                    ],
+                  ),
+                ),
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -974,7 +1031,10 @@ class _PhotoViewState extends State<PhotoView> with UpdateState<PhotoView> {
                               ),
                               label: Text(
                                 loc.editShot,
-                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                                softWrap: false,
+                                textAlign: TextAlign.center,
+                                textScaler: const TextScaler.linear(0.85),
                                 style: const TextStyle(
                                   fontSize: 16,
                                   color: btnBlueDark,

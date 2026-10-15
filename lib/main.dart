@@ -176,12 +176,12 @@ class _MyAppState extends State<MyApp> {
   String get _localizedTitle {
     switch (LanguageManager.locale.languageCode) {
       case 'es':
-        return 'Fruit Measure App';
+        return 'FruitMeasureApp';
       case 'ca':
-        return 'Fruit Measure App';
+        return 'FruitMeasureApp';
       case 'en':
       default:
-        return 'Fruit Measure App';
+        return 'FruitMeasureApp';
     }
   }
 
@@ -337,6 +337,8 @@ class _MyAppState extends State<MyApp> {
             photo: arguments.photo,
             isCreatePhoto: arguments.isCreatePhoto,
             takenImage: arguments.takenImage,
+            photos: arguments.photos,
+            photoIndex: arguments.photoIndex,
           );
         },
       },

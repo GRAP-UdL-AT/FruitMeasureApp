@@ -8,6 +8,7 @@ import 'package:fruit_measure_app/domains/plots/models/plot.dart';
 import 'package:fruit_measure_app/domains/plots/models/plot_complete.dart';
 import 'package:fruit_measure_app/hive_boxes.dart';
 import 'package:fruit_measure_app/l10n/app_localizations.dart';
+import 'package:fruit_measure_app/services/export_format_utils.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:intl/intl.dart';
 
@@ -38,6 +39,8 @@ Future<PlotComplete> loadCompletePlot({
         observations: mp.observations,
         creationDate: mp.creationDate,
         modificationDate: mp.modificationDate,
+        sourceId: mp.sourceId,
+        sourcePlotId: plot.sourceId,
         photos: photos,
       ),
     );
@@ -55,6 +58,7 @@ Future<PlotComplete> loadCompletePlot({
     variety: plot.variety,
     lat: plot.lat,
     lng: plot.lng,
+    sourceId: plot.sourceId,
     measurements: completeMeasurements,
   );
 }
@@ -68,11 +72,14 @@ String _completePlotsToCsvString({
   required List<PlotComplete> completePlots,
   AppLocalizations? loc,
 }) {
+  const totalColumns = 27;
   final StringBuffer csv = StringBuffer();
-
   csv.writeln(
-    loc?.exportPlotsCsvHeader ??
-        'Plot ID,Plot Name,Variety,Farmer,Measurement ID,Measurement Name,Model,Measurement Creation Date,Photo ID,Photo Filename,Photo Creation Date,Photo Capture Date,Latitude,Longitude,Detection ID,Caliber (mm),Confidence,Class',
+    csvRow(
+      (loc?.exportPlotsCsvHeader ??
+              'Plot ID,Plot Name,Variety,Farmer,Measurement ID,Measurement Name,Model,Measurement Creation Date,Photo ID,Original Photo Filename,Processed Image Filename,Photo Creation Date,Photo Capture Date,Latitude,Longitude,Detection ID,Caliber (mm),Fruit Diameter (px),Reference Diameter (px),Caliber Before Correction (mm),Caliber After Correction (mm),Confidence,Class,BBox x1,BBox y1,BBox x2,BBox y2')
+          .split(','),
+    ),
   );
 
   for (final plot in completePlots) {
@@ -81,7 +88,9 @@ String _completePlotsToCsvString({
     final farmer = plot.farmer;
 
     if (plot.measurements.isEmpty) {
-      csv.writeln('${plot.id},"$plotName","$variety","$farmer",,,,,,,,,,,,,,');
+      csv.writeln(
+        csvRow(padCsvRow([plot.id, plotName, variety, farmer], totalColumns)),
+      );
       continue;
     }
 
@@ -94,7 +103,18 @@ String _completePlotsToCsvString({
 
       if (measurement.photos.isEmpty) {
         csv.writeln(
-          '${plot.id},"$plotName","$variety","$farmer",${measurement.id},"$measurementName","$modelName",$measurementCreationDate,,,,,,,,,',
+          csvRow(
+            padCsvRow([
+              plot.id,
+              plotName,
+              variety,
+              farmer,
+              measurement.id,
+              measurementName,
+              modelName,
+              measurementCreationDate,
+            ], totalColumns),
+          ),
         );
         continue;
       }
@@ -108,22 +128,66 @@ String _completePlotsToCsvString({
         ).format(photo.captureDate);
         final latitude = photo.latitude?.toStringAsFixed(6) ?? '';
         final longitude = photo.longitude?.toStringAsFixed(6) ?? '';
-
-        final photoFilename = photo.imagePath?.split('/').last ?? '';
+        final originalName = originalPhotoFilename(photo);
+        final processedName = processedPhotoFilename(photo);
 
         if (photo.detections.isEmpty) {
           csv.writeln(
-            '${plot.id},"$plotName","$variety","$farmer",${measurement.id},"$measurementName","$modelName",$measurementCreationDate,${photo.id},"$photoFilename",$photoCreationDate,$photoCaptureDate,$latitude,$longitude,,,,,',
+            csvRow(
+              padCsvRow([
+                plot.id,
+                plotName,
+                variety,
+                farmer,
+                measurement.id,
+                measurementName,
+                modelName,
+                measurementCreationDate,
+                photo.id,
+                originalName,
+                processedName,
+                photoCreationDate,
+                photoCaptureDate,
+                latitude,
+                longitude,
+              ], totalColumns),
+            ),
           );
           continue;
         }
 
         for (int detIdx = 0; detIdx < photo.detections.length; detIdx++) {
           final detection = photo.detections[detIdx];
-          final photoBasename = photoFilename.split('.').first;
-          final humanReadableId = '${photoBasename}_fruto${detIdx + 1}';
           csv.writeln(
-            '${plot.id},"$plotName","$variety","$farmer",${measurement.id},"$measurementName","$modelName",$measurementCreationDate,${photo.id},"$photoFilename",$photoCreationDate,$photoCaptureDate,$latitude,$longitude,$humanReadableId,${detection.caliber.toStringAsFixed(1)},${detection.confidence.toStringAsFixed(2)},${detection.cls}',
+            csvRow([
+              plot.id,
+              plotName,
+              variety,
+              farmer,
+              measurement.id,
+              measurementName,
+              modelName,
+              measurementCreationDate,
+              photo.id,
+              originalName,
+              processedName,
+              photoCreationDate,
+              photoCaptureDate,
+              latitude,
+              longitude,
+              detectionExportId(photo, detIdx),
+              detection.caliber.toStringAsFixed(1),
+              formatNullableDouble(detection.fruitDiameterPx),
+              formatNullableDouble(detection.supportDiameterPx),
+              formatNullableDouble(detection.rawCaliberMm),
+              formatNullableDouble(detection.correctedCaliberMm),
+              detection.confidence.toStringAsFixed(2),
+              detection.cls,
+              detection.x1.toStringAsFixed(2),
+              detection.y1.toStringAsFixed(2),
+              detection.x2.toStringAsFixed(2),
+              detection.y2.toStringAsFixed(2),
+            ]),
           );
         }
       }
@@ -201,11 +265,22 @@ String _completePlotsToTxtString({
 
       for (int j = 0; j < measurement.photos.length; j++) {
         final photo = measurement.photos[j];
-        final photoFilename =
-            photo.imagePath?.split('/').last ?? notAvailableLabel;
+        final originalName = originalPhotoFilename(
+          photo,
+          fallback: notAvailableLabel,
+        );
+        final processedName = processedPhotoFilename(
+          photo,
+          fallback: notAvailableLabel,
+        );
         txt.writeln('$photoLabel ${j + 1}:');
         txt.writeln('      ID: ${photo.id}');
-        txt.writeln('      Filename: $photoFilename');
+        txt.writeln(
+          '      ${loc?.exportOriginalFilenameLabel ?? 'Original filename:'} $originalName',
+        );
+        txt.writeln(
+          '      ${loc?.exportProcessedFilenameLabel ?? 'Processed filename:'} $processedName',
+        );
         txt.writeln(
           '$creationDateLabel ${DateFormat('dd/MM/yyyy HH:mm').format(photo.creationDate)}',
         );
@@ -217,20 +292,32 @@ String _completePlotsToTxtString({
         );
         txt.writeln('$detectionsLabel ${photo.detections.length}');
 
-        final photoBasename = photoFilename.split('.').first;
-
         for (int k = 0; k < photo.detections.length; k++) {
           final detection = photo.detections[k];
-          final humanReadableId = '${photoBasename}_fruto${k + 1}';
           txt.writeln('$detectionLabel ${k + 1}:');
-          txt.writeln('          ID: $humanReadableId');
+          txt.writeln('          ID: ${detectionExportId(photo, k)}');
           txt.writeln(
             '$caliberLabel ${detection.caliber.toStringAsFixed(1)} mm',
+          );
+          txt.writeln(
+            '          ${loc?.exportFruitDiameterPxLabel ?? 'Fruit diameter (px):'} ${formatNullableDouble(detection.fruitDiameterPx)}',
+          );
+          txt.writeln(
+            '          ${loc?.exportSupportDiameterPxLabel ?? 'Reference diameter (px):'} ${formatNullableDouble(detection.supportDiameterPx)}',
+          );
+          txt.writeln(
+            '          ${loc?.exportRawCaliberLabel ?? 'Caliber before correction:'} ${formatNullableDouble(detection.rawCaliberMm)}',
+          );
+          txt.writeln(
+            '          ${loc?.exportCorrectedCaliberLabel ?? 'Caliber after correction:'} ${formatNullableDouble(detection.correctedCaliberMm)}',
           );
           txt.writeln(
             '$confidenceLabel ${(detection.confidence * 100).toStringAsFixed(0)}%',
           );
           txt.writeln('$classLabel ${detection.cls}');
+          txt.writeln(
+            '          ${loc?.exportBboxLabel ?? 'Bounding box:'} ${detection.x1.toStringAsFixed(1)}, ${detection.y1.toStringAsFixed(1)}, ${detection.x2.toStringAsFixed(1)}, ${detection.y2.toStringAsFixed(1)}',
+          );
         }
         txt.writeln('');
       }
@@ -263,10 +350,8 @@ Future<String?> exportPlots(
 
   switch (format) {
     case PlotExportFormat.csv:
-      content = _completePlotsToCsvString(
-        completePlots: completePlots,
-        loc: loc,
-      );
+      content =
+          '\uFEFF${_completePlotsToCsvString(completePlots: completePlots, loc: loc)}';
       fileName =
           'fma_plots_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.csv';
       allowedExtensions = ['.csv'];

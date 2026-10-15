@@ -2,7 +2,6 @@ import 'package:fruit_measure_app/domains/users/models/user.dart';
 
 String getUserAvatarName(User user) {
   final String userName = user.userName.trim();
-  final String fallback = user.email.trim();
 
   String getInitials(String input) {
     final List<String> parts = input.split(RegExp(r'\s+'));
@@ -18,9 +17,6 @@ String getUserAvatarName(User user) {
 
   if (userName.isNotEmpty) {
     return getInitials(userName.replaceAll(RegExp(r'[._\-]'), ' '));
-  } else if (fallback.isNotEmpty) {
-    final String localPart = fallback.split('@')[0];
-    return getInitials(localPart.replaceAll(RegExp(r'[._\-]'), ' '));
   }
 
   return 'XX';

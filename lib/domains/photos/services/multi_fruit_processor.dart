@@ -1,4 +1,5 @@
 import 'package:fruit_measure_app/domains/detections/models/detection.dart';
+import 'package:fruit_measure_app/domains/detections/models/detection_extensions.dart';
 import 'package:fruit_measure_app/domains/photos/services/local_scale_calculator.dart';
 
 class MultiFruitProcessor {
@@ -20,6 +21,15 @@ class MultiFruitProcessor {
         );
 
         fruit.caliber = double.parse(diameter.toStringAsFixed(1));
+        final nearest = LocalScaleCalculator.findNearestReference(
+          fruit: fruit,
+          references: references,
+        );
+        fruit.recordScale(
+          fruitPx: fruit.diameterPixels,
+          supportPx: nearest.diameterPixels,
+          rawMm: diameter,
+        );
 
         processedFruits.add(fruit);
       } catch (_) {}
