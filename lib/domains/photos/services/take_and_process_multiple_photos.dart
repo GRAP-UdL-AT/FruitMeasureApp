@@ -18,11 +18,11 @@ import 'package:uuid/uuid.dart';
 typedef BatchPhotoResult = (PhotoComplete, XFile, XFile, List<Detection>);
 
 typedef BatchProcessingSummary =
-({int validCount, BatchPhotoResult? onlyPhoto});
+    ({int validCount, BatchPhotoResult? onlyPhoto});
 
 Future<List<(XFile, String?)>?> _pickMultipleImages(
-    ImageSource takingType,
-    ) async {
+  ImageSource takingType,
+) async {
   if (takingType == ImageSource.gallery) {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.image,
@@ -127,11 +127,11 @@ Future<BatchProcessingSummary?> takeAndProcessMultiplePhotos({
         }
 
         final sortedFruits =
-        result.validFruits.toList()..sort((a, b) {
-          final centerAX = (a.x1 + a.x2) / 2;
-          final centerBX = (b.x1 + b.x2) / 2;
-          return centerAX.compareTo(centerBX);
-        });
+            result.validFruits.toList()..sort((a, b) {
+              final centerAX = (a.x1 + a.x2) / 2;
+              final centerBX = (b.x1 + b.x2) / 2;
+              return centerAX.compareTo(centerBX);
+            });
 
         drawDetectionAnnotations(image: image, detections: sortedFruits);
 
@@ -182,9 +182,6 @@ Future<BatchProcessingSummary?> takeAndProcessMultiplePhotos({
 
     if (support == null || detections.isEmpty) continue;
 
-    final cX = image.width / 2;
-    final cY = image.height / 2;
-
     if (measurement.model == Model.corimbo) {
       for (final d in detections) {
         d.caliber = d.diameterInMm(
@@ -196,9 +193,16 @@ Future<BatchProcessingSummary?> takeAndProcessMultiplePhotos({
       }
       drawDetectionAnnotations(image: image, detections: detections);
     } else {
-      final closest = detections.minBy(
-            (d) => d.distanceFromImgCenter(cX: cX, cY: cY),
-      );
+      final supportCenterX = (support.x1 + support.x2) / 2;
+      final supportCenterY = (support.y1 + support.y2) / 2;
+
+      final closest = detections.minBy((d) {
+        final fruitCenterX = (d.x1 + d.x2) / 2;
+        final fruitCenterY = (d.y1 + d.y2) / 2;
+        final dx = fruitCenterX - supportCenterX;
+        final dy = fruitCenterY - supportCenterY;
+        return dx * dx + dy * dy;
+      });
       if (closest == null) continue;
 
       detections = detections.filter((d) => d.id == closest.id).toList();
