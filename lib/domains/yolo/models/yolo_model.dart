@@ -15,15 +15,16 @@ class YoloModel {
     switch (model) {
       case Model.fruto:
         if (Platform.isIOS) {
-          return 'assets/models/yolo11n_fruit_fp32_1120.tflite';
+          return 'yolo11n_fruit_fp32_1120';
         }
-        return 'assets/models/best_poma.tflite';
+        return 'assets/models/yolo11n_fruit_fp32_1120.tflite';
+        // return 'assets/models/best_poma.tflite';
       case Model.corimbo:
         if (Platform.isIOS) {
-          return 'assets/models/yolo11n_fruit_fp32_1120.tflite';
+          return 'yolo11n_fruit_fp32_1120';
         }
-        return 'assets/models/best_corimbe.tflite';
-
+        return 'assets/models/yolo11n_fruit_fp32_1120.tflite';
+        // return 'assets/models/best_corimbe.tflite';
       case Model.caixa:
         return 'fma_model_caixa';
     }

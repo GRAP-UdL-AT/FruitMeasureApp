@@ -134,8 +134,8 @@ Future<ProcessedImageForModel> processImageForModel(XFile file) async {
   img.Image? decoded;
 
   if (isHeic) {
-    // HEIC native support varies across Android devices and image variants.
-    if (Platform.isAndroid) {
+    // HEIC native support varies across devices and image variants.
+    if (Platform.isAndroid || Platform.isIOS) {
       decoded = await _tryDecodeNativeImage(originalBytes, isPng: false);
     }
 
@@ -150,7 +150,7 @@ Future<ProcessedImageForModel> processImageForModel(XFile file) async {
     }
   }
 
-  if (decoded == null && Platform.isAndroid) {
+  if (decoded == null && (Platform.isAndroid || Platform.isIOS)) {
     final isJpeg = _isJpeg(bytesForDecoding);
     final isPng = _isPng(bytesForDecoding);
     if (isJpeg || isPng) {
