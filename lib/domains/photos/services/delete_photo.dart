@@ -129,3 +129,55 @@ Future<void> deletePhoto(
 
   await photoBox.delete(photoId);
 }
+
+
+/// Delete multiple photos as one logical operation.
+///
+/// On iOS, requests deletion of all gallery assets in ONE PhotoKit transaction
+/// (one system confirmation), then removes local files/Hive records. On Android
+/// the existing individual deletion behavior is preserved.
+Future<void> deletePhotos(
+  Iterable<String> photoIds, {
+  bool deleteFromGallery = true,
+}) async {
+  final box = Hive.box<Photo>(photoBoxName);
+  final ids = photoIds.toSet();
+  final photos = [
+    for (final id in ids)
+      if (box.get(id) case final Photo photo) photo,
+  ];
+
+  if (Platform.isIOS && deleteFromGallery) {
+    final targets = <Map<String, String>>[];
+    for (final photo in photos) {
+      final target = <String, String>{};
+      if (photo.galleryPath case final String path when path.isNotEmpty) {
+        target['galleryPath'] = path;
+      }
+      if (photo.imagePath case final String path when path.isNotEmpty) {
+        target['imagePath'] = path;
+      }
+      if (target.isNotEmpty) targets.add(target);
+    }
+
+    if (targets.isNotEmpty) {
+      final result = await GalleryDeleteChannel.deleteManyFromMediaStore(
+        targets,
+      );
+      if (!result.success && kDebugMode) {
+        debugPrint(
+          'Batch gallery deletion incomplete: ${result.error ?? "some assets were not found or deletion was declined"}',
+        );
+      }
+    }
+
+    // No further individual gallery calls: that would open more iOS prompts.
+    for (final photo in photos) {
+      await deletePhoto(photo.id, deleteFromGallery: false);
+    }
+  } else {
+    for (final photo in photos) {
+      await deletePhoto(photo.id, deleteFromGallery: deleteFromGallery);
+    }
+  }
+}

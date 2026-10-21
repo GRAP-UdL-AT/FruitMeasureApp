@@ -17,6 +17,8 @@ Future<void> deletePlot(String plotId, {bool deleteFromGallery = false}) async {
     }
   }
 
+  final allPhotoIds = <String>[];
+
   for (final measurementKey in measurementKeysToDelete) {
     final measurement = measurementBox.get(measurementKey);
     if (measurement == null) continue;
@@ -31,12 +33,14 @@ Future<void> deletePlot(String plotId, {bool deleteFromGallery = false}) async {
     for (final photoKey in photoKeysToDelete) {
       final photo = photoBox.get(photoKey);
       if (photo == null) continue;
-
-      await deletePhoto(photo.id, deleteFromGallery: deleteFromGallery);
+      allPhotoIds.add(photo.id);
     }
-
-    await measurementBox.delete(measurementKey);
   }
 
+  // One batch for the ENTIRE plot, not one batch per measurement.
+  await deletePhotos(allPhotoIds, deleteFromGallery: deleteFromGallery);
+  for (final measurementKey in measurementKeysToDelete) {
+    await measurementBox.delete(measurementKey);
+  }
   await plotBox.delete(plotId);
 }
