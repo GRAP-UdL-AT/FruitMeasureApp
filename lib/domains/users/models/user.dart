@@ -9,7 +9,7 @@ class User extends HiveObject {
     required this.supportDistance,
     this.disclaimerAccepted = false,
     this.preferredLanguage,
-    this.confidenceThreshold = 0.80,
+    this.confidenceThreshold = 0.50,
   });
 
   factory User.fromJson(Map<String, dynamic> json) => User(
@@ -21,7 +21,7 @@ class User extends HiveObject {
     disclaimerAccepted: json['disclaimerAccepted'] ?? false,
     preferredLanguage: json['preferredLanguage'],
     confidenceThreshold:
-        (json['confidenceThreshold'] as num?)?.toDouble() ?? 0.80,
+        (json['confidenceThreshold'] as num?)?.toDouble() ?? 0.50,
   );
 
   final String id;

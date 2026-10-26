@@ -25,7 +25,7 @@ class UserAdapter extends TypeAdapter<User> {
       disclaimerAccepted: fields[5] == null ? false : fields[5] as bool,
       preferredLanguage: fields[6] as String?,
       confidenceThreshold:
-          fields[7] == null ? 0.80 : (fields[7] as num).toDouble(),
+          fields[7] == null ? 0.50 : (fields[7] as num).toDouble(),
     );
   }
 

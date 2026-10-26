@@ -17,14 +17,12 @@ class YoloModel {
         if (Platform.isIOS) {
           return 'yolo11n_fruit_fp32_1120';
         }
-        return 'assets/models/yolo11n_fruit_fp32_1120.tflite';
-        // return 'assets/models/best_poma.tflite';
+        return 'assets/models/best_poma.tflite';
       case Model.corimbo:
         if (Platform.isIOS) {
           return 'yolo11n_fruit_fp32_1120';
         }
         return 'assets/models/yolo11n_fruit_fp32_1120.tflite';
-        // return 'assets/models/best_corimbe.tflite';
       case Model.caixa:
         return 'fma_model_caixa';
     }

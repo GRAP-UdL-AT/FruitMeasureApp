@@ -161,7 +161,7 @@ Future<BatchProcessingSummary?> takeAndProcessMultiplePhotos({
 
     Detection? support;
     var detections = <Detection>[];
-    final threshold = currentUser?.confidenceThreshold ?? 0.80;
+    final threshold = currentUser?.confidenceThreshold ?? 0.50;
 
     for (final e in boxes) {
       if (e['confidence'] < threshold) continue;
