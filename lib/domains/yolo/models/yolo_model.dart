@@ -15,7 +15,7 @@ class YoloModel {
     switch (model) {
       case Model.fruto:
         if (Platform.isIOS) {
-          return 'yolo11n_fruit_fp32_1120';
+          return 'best_poma';
         }
         return 'assets/models/best_poma.tflite';
       case Model.corimbo:
