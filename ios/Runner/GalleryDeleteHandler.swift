@@ -17,62 +17,23 @@ class GalleryDeleteHandler {
             }
         }
     }
-    
-    private func performDelete(identifierOrPath: String, completion: @escaping (Bool) -> Void) {
-        
+
+
+    private func performDelete(identifierOrPath: String,completion: @escaping (Bool) -> Void) {
+
         let fetchResult = PHAsset.fetchAssets(withLocalIdentifiers: [identifierOrPath], options: nil)
-        
-        if let asset = fetchResult.firstObject {
-            PHPhotoLibrary.shared().performChanges({
-                PHAssetChangeRequest.deleteAssets([asset] as NSArray)
-            }) { success, error in
-                DispatchQueue.main.async {
-                    completion(success)
-                }
-            }
-        } else {
-            findAndDeleteByFilePath(identifierOrPath, completion: completion)
-        }
-    }
-    
-    private func findAndDeleteByFilePath(_ filePath: String, completion: @escaping (Bool) -> Void) {
-        let fileName = (filePath as NSString).lastPathComponent
-        let fileSize = (try? FileManager.default.attributesOfItem(atPath: filePath)[.size] as? NSNumber)?.intValue ?? 0
-        
-        let fetchOptions = PHFetchOptions()
-        fetchOptions.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
-        
-        let fetchResult = PHAsset.fetchAssets(with: .image, options: fetchOptions)
-        
-        var targetAsset: PHAsset?
-        
-        fetchResult.enumerateObjects { asset, _, stop in
-            let resources = PHAssetResource.assetResources(for: asset)
-            for resource in resources {
-                if resource.originalFilename == fileName {
-                    targetAsset = asset
-                    stop.pointee = true
-                    return
-                }
-                
-                if let fileSizeValue = resource.value(forKey: "fileSize") as? Int, fileSizeValue == fileSize {
-                    targetAsset = asset
-                    stop.pointee = true
-                    return
-                }
-            }
-        }
-        
-        guard let asset = targetAsset else {
+
+        guard let asset = fetchResult.firstObject else {
+            // No exact PhotoKit match: never guess another photo.
             DispatchQueue.main.async {
                 completion(false)
             }
             return
         }
-        
+
         PHPhotoLibrary.shared().performChanges({
             PHAssetChangeRequest.deleteAssets([asset] as NSArray)
-        }) { success, error in
+        }) { success, _ in
             DispatchQueue.main.async {
                 completion(success)
             }
@@ -80,8 +41,8 @@ class GalleryDeleteHandler {
     }
 }
 
-// MARK: - Batch photo deletion
 
+// MARK: - Batch photo deletion
 extension GalleryDeleteHandler {
     /// Resolve all images first, then delete them with a single PhotoKit change
     /// request. iOS will show at most one system confirmation for the batch.
@@ -128,10 +89,23 @@ extension GalleryDeleteHandler {
 
         var assetsByIndex: [Int: PHAsset] = [:]
         var unresolvedIndices: [Int] = []
+
         for (index, photo) in photos.enumerated() {
-            if let id = photo["galleryPath"], let asset = byIdentifier[id] {
-                assetsByIndex[index] = asset
+
+            if let id = photo["galleryPath"], !id.isEmpty {
+
+                if let asset = byIdentifier[id] {
+                    // La fotografia existeix a PhotoKit.
+                    assetsByIndex[index] = asset
+                } else {
+                    // La fotografia no està disponible per aquest identificador.
+                    // NO busquem una altra fotografia pel nom.
+                    print("[GalleryDelete] Asset unavailable: \(id)")
+                }
+
             } else {
+                // Fotografia antiga sense identificador de PhotoKit.
+                // Conservem el fallback existent per compatibilitat.
                 unresolvedIndices.append(index)
             }
         }

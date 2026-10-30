@@ -13,7 +13,6 @@ Future<String?> findPhotoInGallery({
     final localFile = File(pathToSearch);
     if (!await localFile.exists()) return null;
 
-    final localFileSize = await localFile.length();
     final localFileName = localFile.path.split('/').last;
 
     String? expectedProcessedFileName;
@@ -47,38 +46,43 @@ Future<String?> findPhotoInGallery({
         .getAssetListRange(start: 0, end: searchLimit)
         .timeout(const Duration(seconds: 10));
 
+    AssetEntity? matchedAsset;
+    String? matchedFileName;
+
     for (final asset in assets) {
       final file = await asset.file;
-      if (file != null) {
-        final assetFileName = file.path.split('/').last;
-        final assetSize = await file.length();
+      if (file == null) continue;
 
-        if (expectedProcessedFileName != null &&
-            assetFileName == expectedProcessedFileName) {
-          if (Platform.isIOS) {
-            return asset.id;
-          } else {
-            return assetFileName;
-          }
-        }
+      final assetFileName = file.path.split('/').last;
 
-        if (assetFileName == localFileName) {
-          if (Platform.isIOS) {
-            return asset.id;
-          } else {
-            return assetFileName;
-          }
-        }
+      final matchesExpectedName =
+          expectedProcessedFileName != null &&
+          assetFileName == expectedProcessedFileName;
 
-        if (assetSize == localFileSize) {
-          if (Platform.isIOS) {
-            return asset.id;
-          } else {
-            return assetFileName;
-          }
-        }
+      final matchesLocalName =
+          assetFileName == localFileName;
+
+      if (!matchesExpectedName && !matchesLocalName) {
+        continue;
       }
+
+      if (matchedAsset != null && matchedAsset.id != asset.id) {
+        // Ambiguous filename: do not return an uncertain ID.
+        return null;
+      }
+
+      matchedAsset = asset;
+      matchedFileName = assetFileName;
     }
+
+    if (matchedAsset == null) return null;
+
+    if (Platform.isIOS) {
+      return matchedAsset.id;
+    }
+
+    return matchedFileName;
+
 
     return null;
   } catch (e) {
