@@ -16,7 +16,7 @@ void drawDetectionAnnotations({
   for (var index = 0; index < detections.length; index++) {
     final detection = detections[index];
     final color = _annotationColor(index);
-    final (x1, y1, x2, y2) = _adjustBoundingBox(
+    final (x1, y1, x2, y2) = _boundingBoxFromDetection(
       detection: detection,
       imageWidth: image.width,
       imageHeight: image.height,
@@ -92,32 +92,17 @@ int _boxThickness(img.Image image) {
   return math.max(6, math.min(11, image.width ~/ 120));
 }
 
-(int, int, int, int) _adjustBoundingBox({
+// Draw the original YOLO box without shrinking it. Only round coordinates
+// to pixels and clip them to the image boundaries for rendering.
+(int, int, int, int) _boundingBoxFromDetection({
   required Detection detection,
   required int imageWidth,
   required int imageHeight,
 }) {
-  final width = (detection.x2 - detection.x1).abs();
-  final height = (detection.y2 - detection.y1).abs();
-  final shrinkX = width * 0.15 / 2;
-  final shrinkY = height * 0.15 / 2;
-
-  var x1 = (math.min(detection.x1, detection.x2) + shrinkX).round();
-  var y1 = (math.min(detection.y1, detection.y2) + shrinkY).round();
-  var x2 = (math.max(detection.x1, detection.x2) - shrinkX).round();
-  var y2 = (math.max(detection.y1, detection.y2) - shrinkY).round();
-
-  // Nunca reduce una detección diminuta a una caja invisible.
-  if (x2 - x1 < 10) {
-    final center = ((detection.x1 + detection.x2) / 2).round();
-    x1 = center - math.max(1, width.round()) ~/ 2;
-    x2 = center + math.max(1, width.round()) ~/ 2;
-  }
-  if (y2 - y1 < 10) {
-    final center = ((detection.y1 + detection.y2) / 2).round();
-    y1 = center - math.max(1, height.round()) ~/ 2;
-    y2 = center + math.max(1, height.round()) ~/ 2;
-  }
+  var x1 = math.min(detection.x1, detection.x2).round();
+  var y1 = math.min(detection.y1, detection.y2).round();
+  var x2 = math.max(detection.x1, detection.x2).round();
+  var y2 = math.max(detection.y1, detection.y2).round();
 
   x1 = x1.clamp(0, math.max(0, imageWidth - 1));
   y1 = y1.clamp(0, math.max(0, imageHeight - 1));
@@ -265,9 +250,9 @@ void _drawLegendText({
 
   for (var dx = -_legendTextOutlineWidth; dx <= _legendTextOutlineWidth; dx++) {
     for (
-      var dy = -_legendTextOutlineWidth;
-      dy <= _legendTextOutlineWidth;
-      dy++
+    var dy = -_legendTextOutlineWidth;
+    dy <= _legendTextOutlineWidth;
+    dy++
     ) {
       if (dx != 0 || dy != 0) {
         img.drawString(
@@ -299,11 +284,11 @@ void _drawLegendText({
 }
 
 void _fillOverlay(
-  img.Image image,
-  math.Rectangle<int> rect,
-  img.Color color,
-  double opacity,
-) {
+    img.Image image,
+    math.Rectangle<int> rect,
+    img.Color color,
+    double opacity,
+    ) {
   final alpha = opacity.clamp(0, 1);
   for (var y = rect.top; y < rect.bottom && y < image.height; y++) {
     for (var x = rect.left; x < rect.right && x < image.width; x++) {

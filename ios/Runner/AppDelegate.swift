@@ -59,6 +59,16 @@ import GoogleMaps
         self.deleteHandler.deleteFromPhotoLibrary(identifierOrPath: identifierOrPath) { success in
           result(success)
         }
+      } else if call.method == "deleteManyFromMediaStore" {
+        guard let args = call.arguments as? [String: Any],
+              let photos = args["photos"] as? [[String: String]] else {
+          result(FlutterError(code: "INVALID_ARGUMENT", message: "photos is required", details: nil))
+          return
+        }
+
+        self.deleteHandler.deleteManyFromPhotoLibrary(photos: photos) { success in
+          result(success)
+        }
       } else {
         result(FlutterMethodNotImplemented)
       }

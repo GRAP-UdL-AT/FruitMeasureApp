@@ -13,10 +13,7 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   intl: ^0.20.2
-  ultralytics_yolo:
-    git:
-      url: https://github.com/sadtearcat/YOLO_FLUTTER_APP.git
-      ref: fix/useGpuOption
+  ultralytics_yolo: 0.6.16
   cupertino_icons: ^1.0.8
   hive_ce: ^2.11.3
   hive_ce_flutter: ^2.3.1
@@ -94,6 +91,9 @@ flutter:
     - assets/logos/generalitat-departament-logo.png
     - assets/logos/gobEspaña-logo.png
     - assets/logos/UE-logo.png
+    - assets/models/yolo11n_fruit_fp32_1120.tflite
+    - assets/models/best_poma.tflite
+    - assets/models/best_corimbe.tflite
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

@@ -15,6 +15,11 @@ import 'package:fruit_measure_app/utils/get_current_location.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 
+typedef BatchPhotoResult = (PhotoComplete, XFile, XFile, List<Detection>);
+
+typedef BatchProcessingSummary =
+    ({int validCount, BatchPhotoResult? onlyPhoto});
+
 Future<List<(XFile, String?)>?> _pickMultipleImages(
   ImageSource takingType,
 ) async {
@@ -44,12 +49,12 @@ Future<List<(XFile, String?)>?> _pickMultipleImages(
   return [(picked, picked.name)];
 }
 
-Future<List<(PhotoComplete, XFile, XFile, List<Detection>)>?>
-takeAndProcessMultiplePhotos({
+Future<BatchProcessingSummary?> takeAndProcessMultiplePhotos({
   required Measurement measurement,
   required ImageSource takingType,
   required double dist,
   required Function(int, int) onProgress,
+  required Future<void> Function(BatchPhotoResult) onPhotoProcessed,
 }) async {
   final loc = await getCurrentLocation();
   final images = await _pickMultipleImages(takingType);
@@ -62,7 +67,19 @@ takeAndProcessMultiplePhotos({
 
   await YoloModel.init(model: measurement.model ?? Model.fruto);
 
-  final List<(PhotoComplete, XFile, XFile, List<Detection>)> results = [];
+  int validCount = 0;
+  BatchPhotoResult? onlyPhoto;
+
+  Future<void> emitPhoto(BatchPhotoResult result) async {
+    // No comencem la següent imatge fins que s'hagi desat aquesta
+    await onPhotoProcessed(result);
+
+    validCount++;
+
+    // Conservem només el resultat únic per obrir PhotoView
+    // Si hi ha dues o més fotografies, ja no cal conservar-lo
+    onlyPhoto = validCount == 1 ? result : null;
+  }
 
   for (int i = 0; i < images.length; i++) {
     onProgress(i + 1, images.length);
@@ -135,7 +152,7 @@ takeAndProcessMultiplePhotos({
           originalFilename: originalFilename,
           uniqueId: photoId,
         );
-        results.add((complete, pickedFile, processedFile, sortedFruits));
+        await emitPhoto((complete, pickedFile, processedFile, sortedFruits));
         continue;
       } on CaixaProcessingException {
         continue;
@@ -144,7 +161,7 @@ takeAndProcessMultiplePhotos({
 
     Detection? support;
     var detections = <Detection>[];
-    final threshold = currentUser?.confidenceThreshold ?? 0.80;
+    final threshold = currentUser?.confidenceThreshold ?? 0.50;
 
     for (final e in boxes) {
       if (e['confidence'] < threshold) continue;
@@ -165,9 +182,6 @@ takeAndProcessMultiplePhotos({
 
     if (support == null || detections.isEmpty) continue;
 
-    final cX = image.width / 2;
-    final cY = image.height / 2;
-
     if (measurement.model == Model.corimbo) {
       for (final d in detections) {
         d.caliber = d.diameterInMm(
@@ -179,9 +193,16 @@ takeAndProcessMultiplePhotos({
       }
       drawDetectionAnnotations(image: image, detections: detections);
     } else {
-      final closest = detections.minBy(
-        (d) => d.distanceFromImgCenter(cX: cX, cY: cY),
-      );
+      final supportCenterX = (support.x1 + support.x2) / 2;
+      final supportCenterY = (support.y1 + support.y2) / 2;
+
+      final closest = detections.minBy((d) {
+        final fruitCenterX = (d.x1 + d.x2) / 2;
+        final fruitCenterY = (d.y1 + d.y2) / 2;
+        final dx = fruitCenterX - supportCenterX;
+        final dy = fruitCenterY - supportCenterY;
+        return dx * dx + dy * dy;
+      });
       if (closest == null) continue;
 
       detections = detections.filter((d) => d.id == closest.id).toList();
@@ -214,12 +235,12 @@ takeAndProcessMultiplePhotos({
       originalFilename: originalFilename,
       uniqueId: photoId,
     );
-    results.add((complete, pickedFile, processedFile, detections));
+    await emitPhoto((complete, pickedFile, processedFile, detections));
   }
 
-  if (results.isEmpty) {
+  if (validCount == 0) {
     throw Exception('No valid photos were processed');
   }
 
-  return results;
+  return (validCount: validCount, onlyPhoto: onlyPhoto);
 }

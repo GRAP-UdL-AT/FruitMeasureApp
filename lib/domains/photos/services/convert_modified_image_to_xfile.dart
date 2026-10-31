@@ -7,10 +7,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 
 Future<XFile> convertModifiedImageToXFile(
-  img.Image originalImage, {
-  String? originalFilename,
-  String? uniqueId,
-}) async {
+    img.Image originalImage, {
+      String? originalFilename,
+      String? uniqueId,
+    }) async {
   final encodedImage = Uint8List.fromList(img.encodePng(originalImage));
   final processedFilename = processedFilenameFromOriginal(
     originalFilename,

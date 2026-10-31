@@ -222,21 +222,23 @@ class _PhotoListViewState extends State<PhotoListView>
 
                                 if (confirmed == true) {
                                   bool hasError = false;
-                                  for (final photoId in _selectedPhotos) {
-                                    try {
-                                      await deletePhoto(
-                                        photoId,
-                                        deleteFromGallery: deleteFromGallery,
+                                  try {
+                                    // Delete the whole manual selection in one
+                                    // gallery operation on iOS.
+                                    await deletePhotos(
+                                      _selectedPhotos.toSet(),
+                                      deleteFromGallery: deleteFromGallery,
+                                    );
+                                  } catch (e) {
+                                    hasError = true;
+                                    if (kDebugMode) {
+                                      print(
+                                        'Failed to delete selected photos: $e',
                                       );
-                                    } catch (e) {
-                                      hasError = true;
-                                      if (kDebugMode) {
-                                        print(
-                                          'Failed to delete photo $photoId: $e',
-                                        );
-                                      }
                                     }
                                   }
+
+                                  if (!mounted) return;
 
                                   setState(() {
                                     _selectedPhotos.clear();

@@ -18,9 +18,10 @@ Future<void> deleteMeasurement(
 
   final photos = photoBox.values.where((photo) => photo.measurementId == measurementId).toList();
 
-  for (final photo in photos) {
-    await deletePhoto(photo.id, deleteFromGallery: deleteFromGallery);
-  }
+  await deletePhotos(
+    photos.map((photo) => photo.id),
+    deleteFromGallery: deleteFromGallery,
+  );
 
   await measurementBox.delete(measurementId);
 }

@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
+		27036D373088ABC300BC8819 /* yolo11n_fruit_fp32_1120.mlpackage in Sources */ = {isa = PBXBuildFile; fileRef = 27036D363088ABC300BC8819 /* yolo11n_fruit_fp32_1120.mlpackage */; };
+		27E8FD0C3091EE2F004764E9 /* best_poma.mlpackage in Sources */ = {isa = PBXBuildFile; fileRef = 27E8FD0B3091EE2F004764E9 /* best_poma.mlpackage */; };
 		331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 331C807B294A618700263BE5 /* RunnerTests.swift */; };
 		386ED54FE9B2071D5EF24E00 /* Pods_RunnerTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 73F94413A7D39AAED239F537 /* Pods_RunnerTests.framework */; };
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
@@ -49,6 +51,8 @@
 /* Begin PBXFileReference section */
 		1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
 		1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GeneratedPluginRegistrant.m; sourceTree = "<group>"; };
+		27036D363088ABC300BC8819 /* yolo11n_fruit_fp32_1120.mlpackage */ = {isa = PBXFileReference; lastKnownFileType = folder.mlpackage; path = yolo11n_fruit_fp32_1120.mlpackage; sourceTree = "<group>"; };
+		27E8FD0B3091EE2F004764E9 /* best_poma.mlpackage */ = {isa = PBXFileReference; lastKnownFileType = folder.mlpackage; path = best_poma.mlpackage; sourceTree = "<group>"; };
 		331C807B294A618700263BE5 /* RunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerTests.swift; sourceTree = "<group>"; };
 		331C8081294A63A400263BE5 /* RunnerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RunnerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = AppFrameworkInfo.plist; path = Flutter/AppFrameworkInfo.plist; sourceTree = "<group>"; };
@@ -151,6 +155,8 @@
 				2B5D75B51B82044FAAFFA78A /* Frameworks */,
 				E0FA29FB2E3A1EDD001E0A3F /* fma_model_corimbo.mlpackage */,
 				E0FA29FE2E3A1EDE001E0A3F /* fma_model_caixa.mlpackage */,
+				27036D363088ABC300BC8819 /* yolo11n_fruit_fp32_1120.mlpackage */,
+				27E8FD0B3091EE2F004764E9 /* best_poma.mlpackage */,
 			);
 			sourceTree = "<group>";
 		};
@@ -417,6 +423,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
+				27036D373088ABC300BC8819 /* yolo11n_fruit_fp32_1120.mlpackage in Sources */,
+				27E8FD0C3091EE2F004764E9 /* best_poma.mlpackage in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 				E0FA29FC2E3A1EDD001E0A3F /* fma_model_corimbo.mlpackage in Sources */,
 				E0FA29FD2E3A1EDE001E0A3F /* fma_model_caixa.mlpackage in Sources */,

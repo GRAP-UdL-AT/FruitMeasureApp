@@ -57,9 +57,9 @@ Future<void> _saveImage({
         (await getApplicationDocumentsDirectory()).path;
 
     final originalFileName =
-        photo.originalFilename != null && photo.originalFilename!.isNotEmpty
-            ? safeFilename(basenameOf(photo.originalFilename!))
-            : safeFilename(basenameOf(originalImage.path));
+    photo.originalFilename != null && photo.originalFilename!.isNotEmpty
+        ? safeFilename(basenameOf(photo.originalFilename!))
+        : safeFilename(basenameOf(originalImage.path));
 
     final originalFileExtension = extensionFromFilename(originalFileName);
 
@@ -117,8 +117,8 @@ Future<PhotoView?> executePhotoTakingWorkflow({
     measurement != null
         ? (m = measurement)
         : (measurementId != null
-            ? (m = _getMeasurementById(measurementId: measurementId))
-            : throw Exception('Missing required params!'));
+        ? (m = _getMeasurementById(measurementId: measurementId))
+        : throw Exception('Missing required params!'));
 
     final loc = AppLocalizations.of(context)!;
 
@@ -128,44 +128,41 @@ Future<PhotoView?> executePhotoTakingWorkflow({
         setProgress(0, 1); // mensaje "Seleccionando imágenes…"
       }
 
-      final results = await takeAndProcessMultiplePhotos(
+      // Process and save each valid photo before starting the next one.
+      final batch = await takeAndProcessMultiplePhotos(
         measurement: m,
         takingType: takingType,
         dist: distFruitToCamMm,
         onProgress: (current, total) {
-          if (setProgress != null) {
-            setProgress(current, total);
+          setProgress?.call(current, total);
+        },
+        onPhotoProcessed: (result) async {
+          final (photo, originalImage, processedImage, detections) = result;
+
+          await _saveImage(
+            photo: photo,
+            originalImage: originalImage,
+            processedImage: processedImage,
+          );
+
+          for (final detection in detections) {
+            editDetection(detection);
           }
+          editPhoto(photo);
         },
       );
 
-      if (results == null) {
+      if (batch == null) {
         // User cancelled
         setProcessing(false);
         return null;
       }
 
-      for (final (photo, originalImage, processedImage, detections)
-          in results) {
-        await _saveImage(
-          photo: photo,
-          originalImage: originalImage,
-          processedImage: processedImage,
-        );
-
-        for (final detection in detections) {
-          editDetection(detection);
-        }
-
-        editPhoto(photo);
-      }
-
       setProcessing(false);
       updateState();
 
-      if (results.length == 1) {
-        final (photo, originalImage, processedImage, detections) =
-            results.first;
+      if (batch.validCount == 1) {
+        final (photo, _, processedImage, detections) = batch.onlyPhoto!;
 
         final PhotoComplete photoComplete = PhotoComplete(
           id: photo.id,
@@ -198,7 +195,7 @@ Future<PhotoView?> executePhotoTakingWorkflow({
       } else {
         customSnackBar(
           context: context,
-          message: '${results.length} ${loc.photosProcessed}',
+          message: '${batch.validCount} ${loc.photosProcessed}',
           type: SnackbarType.success,
         );
       }

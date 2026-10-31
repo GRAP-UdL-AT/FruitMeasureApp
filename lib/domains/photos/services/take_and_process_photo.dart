@@ -128,7 +128,7 @@ Future<(PhotoComplete, XFile, XFile, List<Detection>)?> takeAndProcessPhoto({
   Detection? support;
   var detections = <Detection>[];
 
-  final threshold = currentUser?.confidenceThreshold ?? 0.80;
+  final threshold = currentUser?.confidenceThreshold ?? 0.50;
   for (final e in boxes) {
     if (e['confidence'] < threshold) continue;
     final d = Detection(
@@ -152,9 +152,6 @@ Future<(PhotoComplete, XFile, XFile, List<Detection>)?> takeAndProcessPhoto({
     throw Exception('No detections found');
   }
 
-  final cX = image.width / 2;
-  final cY = image.height / 2;
-
   if (measurement.model == Model.corimbo) {
     for (final d in detections) {
       d.caliber = d.diameterInMm(
@@ -166,9 +163,17 @@ Future<(PhotoComplete, XFile, XFile, List<Detection>)?> takeAndProcessPhoto({
     }
     drawDetectionAnnotations(image: image, detections: detections);
   } else {
-    final closest = detections.minBy(
-      (d) => d.distanceFromImgCenter(cX: cX, cY: cY),
-    );
+    // Per a una poma individual, seleccionem la més propera al suport.
+    final supportCenterX = (support.x1 + support.x2) / 2;
+    final supportCenterY = (support.y1 + support.y2) / 2;
+
+    final closest = detections.minBy((d) {
+      final fruitCenterX = (d.x1 + d.x2) / 2;
+      final fruitCenterY = (d.y1 + d.y2) / 2;
+      final dx = fruitCenterX - supportCenterX;
+      final dy = fruitCenterY - supportCenterY;
+      return dx * dx + dy * dy;
+    });
     if (closest == null) {
       throw Exception('No valid detections found');
     }

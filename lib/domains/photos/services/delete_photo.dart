@@ -55,7 +55,6 @@ Future<void> _deleteFromGalleryPhotoManager(String imagePath) async {
     final localFile = File(imagePath);
     if (!await localFile.exists()) return;
 
-    final localFileSize = await localFile.length();
     final localFileName = localFile.path.split('/').last;
 
     final ps = await PhotoManager.requestPermissionExtend().timeout(
@@ -76,30 +75,38 @@ Future<void> _deleteFromGalleryPhotoManager(String imagePath) async {
         .getAssetListRange(start: 0, end: assetCount)
         .timeout(const Duration(seconds: 30));
 
-    AssetEntity? targetAsset;
+  AssetEntity? targetAsset;
+  bool ambiguousMatch = false;
 
-    for (final asset in assets) {
-      final file = await asset.file;
-      if (file != null) {
-        final assetFileName = file.path.split('/').last;
-        final assetSize = await file.length();
+  for (final asset in assets) {
+    final file = await asset.file;
+    if (file == null) continue;
 
-        if (assetFileName == localFileName) {
-          targetAsset = asset;
-          break;
-        }
+    final assetFileName = file.path.split('/').last;
 
-        if (assetSize == localFileSize && targetAsset == null) {
-          targetAsset = asset;
-        }
-      }
+    // Never identify a photo by file size.
+    if (assetFileName != localFileName) continue;
+
+    if (targetAsset != null && targetAsset.id != asset.id) {
+      // Multiple photos have the same filename.
+      // Do not risk deleting the wrong one.
+      ambiguousMatch = true;
+      break;
     }
 
-    if (targetAsset != null) {
-      await PhotoManager.editor
-          .deleteWithIds([targetAsset.id])
-          .timeout(const Duration(seconds: 15));
-    }
+    targetAsset = asset;
+  }
+
+  if (!ambiguousMatch && targetAsset != null) {
+    await PhotoManager.editor
+        .deleteWithIds([targetAsset.id])
+        .timeout(const Duration(seconds: 15));
+  } else if (ambiguousMatch && kDebugMode) {
+    debugPrint(
+      'Gallery deletion skipped: ambiguous filename $localFileName',
+    );
+  }
+
   } catch (e) {
     if (kDebugMode) {
       print('Failed to delete from gallery via PhotoManager: $e');
@@ -111,6 +118,13 @@ Future<void> deletePhoto(
   String photoId, {
   bool deleteFromGallery = true,
 }) async {
+  if (Platform.isIOS && deleteFromGallery) {
+    await deletePhotos(
+      [photoId],
+      deleteFromGallery: true,
+    );
+    return;
+  }
   final photoBox = Hive.box<Photo>(photoBoxName);
   final photo = photoBox.get(photoId);
 
@@ -128,4 +142,56 @@ Future<void> deletePhoto(
   await _deletePhysicalFile(originalImagePath);
 
   await photoBox.delete(photoId);
+}
+
+
+/// Delete multiple photos as one logical operation.
+///
+/// On iOS, requests deletion of all gallery assets in ONE PhotoKit transaction
+/// (one system confirmation), then removes local files/Hive records. On Android
+/// the existing individual deletion behavior is preserved.
+Future<void> deletePhotos(
+  Iterable<String> photoIds, {
+  bool deleteFromGallery = true,
+}) async {
+  final box = Hive.box<Photo>(photoBoxName);
+  final ids = photoIds.toSet();
+  final photos = [
+    for (final id in ids)
+      if (box.get(id) case final Photo photo) photo,
+  ];
+
+  if (Platform.isIOS && deleteFromGallery) {
+    final targets = <Map<String, String>>[];
+    for (final photo in photos) {
+      final target = <String, String>{};
+      if (photo.galleryPath case final String path when path.isNotEmpty) {
+        target['galleryPath'] = path;
+      }
+      if (photo.imagePath case final String path when path.isNotEmpty) {
+        target['imagePath'] = path;
+      }
+      if (target.isNotEmpty) targets.add(target);
+    }
+
+    if (targets.isNotEmpty) {
+      final result = await GalleryDeleteChannel.deleteManyFromMediaStore(
+        targets,
+      );
+      if (!result.success && kDebugMode) {
+        debugPrint(
+          'Batch gallery deletion incomplete: ${result.error ?? "some assets were not found or deletion was declined"}',
+        );
+      }
+    }
+
+    // No further individual gallery calls: that would open more iOS prompts.
+    for (final photo in photos) {
+      await deletePhoto(photo.id, deleteFromGallery: false);
+    }
+  } else {
+    for (final photo in photos) {
+      await deletePhoto(photo.id, deleteFromGallery: deleteFromGallery);
+    }
+  }
 }

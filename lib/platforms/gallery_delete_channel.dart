@@ -40,4 +40,30 @@ class GalleryDeleteChannel {
       return GalleryDeleteResult(success: false, error: e.toString());
     }
   }
+
+  /// Batch removal on iOS: one native PhotoKit transaction and confirmation.
+  /// Each item can contain a galleryPath (PHAsset local identifier) and/or
+  /// imagePath (legacy fallback). Does not attempt per-photo retries.
+  static Future<GalleryDeleteResult> deleteManyFromMediaStore(
+    List<Map<String, String>> photos,
+  ) async {
+    if (photos.isEmpty) return GalleryDeleteResult(success: true);
+
+    try {
+      final result = await _channel.invokeMethod<bool>(
+        'deleteManyFromMediaStore',
+        {'photos': photos},
+      );
+      return GalleryDeleteResult(success: result ?? false);
+    } on PlatformException catch (e) {
+      return GalleryDeleteResult(
+        success: false,
+        error: e.message ?? e.code,
+        isPermissionError: e.code == 'PERMISSION_DENIED',
+      );
+    } catch (e) {
+      return GalleryDeleteResult(success: false, error: e.toString());
+    }
+  }
+
 }
